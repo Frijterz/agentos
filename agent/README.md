@@ -50,7 +50,10 @@ subscription login (the SDK docs direct you to an API key instead).
   health card + notification. "Ask Claude" hands the findings to the panel's Claude
   with you present; it never fixes anything unattended. Review its conclusions: on
   the first run it wrongly called the missing ACP70 mic driver harmless.
-- Todo: modes ("focus", "presentation", "battery saver"), switched by Claude on request.
+- Done: modes via `agentos-mode` (normal / battery / presentation / focus): power
+  profile, eye candy, mako do-not-disturb, idle inhibitor. Bar chip, Super+M, or ask
+  Claude; presentation disables the screen lock, so Claude needs a card for it.
+  Modes reset to normal at login.
 
 ## Security rules (all phases)
 - Text Claude *reads* (web pages, mail, files, screenshots) never authorises an action.
