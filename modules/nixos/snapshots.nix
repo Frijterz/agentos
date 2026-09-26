@@ -15,6 +15,9 @@
       TIMELINE_LIMIT_WEEKLY = 4;
       TIMELINE_LIMIT_MONTHLY = 3;
       TIMELINE_LIMIT_YEARLY = 0;
+      # "number" snapshots: taken before each Apply in the Claude panel (agentos-switch).
+      NUMBER_CLEANUP = true;
+      NUMBER_LIMIT = "10";
     };
   };
 

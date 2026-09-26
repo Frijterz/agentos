@@ -33,12 +33,12 @@ fi
 nix-store --query --hash "$target" >/dev/null || fail "not a valid store path: $target"
 [ -x "$target/bin/switch-to-configuration" ] || fail "not a NixOS system: $target"
 
-# Read-only /home snapshot first (Btrfs, instant); keep the newest 5.
-snapdir=/home/.snapshots
-mkdir -p "$snapdir"
-btrfs subvolume snapshot -r /home "$snapdir/agentos-$(date +%Y%m%d-%H%M%S)" >/dev/null
-find "$snapdir" -maxdepth 1 -name 'agentos-*' -printf '%f\n' | sort | head -n -5 |
-  while read -r old; do btrfs subvolume delete "$snapdir/$old" >/dev/null; done
+# /home snapshot first, through snapper (modules/nixos/snapshots.nix) so it shows in
+# `snapper -c home list`; its "number" cleanup keeps the newest few.
+snapper -c home create --cleanup-algorithm number --description "agentos: before applying $arg"
+# Snapshots from before we used snapper sat in snapper's folder; remove them once.
+find /home/.snapshots -maxdepth 1 -name 'agentos-*' -printf '%p\n' |
+  while read -r old; do btrfs subvolume delete "$old" >/dev/null; done
 
 echo "agentos-switch: applying $target"
 if [ "$arg" = rollback ]; then

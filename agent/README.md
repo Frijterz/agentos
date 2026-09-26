@@ -35,8 +35,8 @@ subscription login (the SDK docs direct you to an API key instead).
 - polkit lets only you start it, with your password every time (no "remember me").
 - The panel runs `agentos-pending` after each reply and on open; a new build shows up
   as a card with the `nvd` package diff and git state, and Apply / Undo buttons.
-- A read-only `/home` Btrfs snapshot is taken before every apply (newest 5 in
-  `/home/.snapshots`). Rollback = Undo on the card, or the boot menu.
+- snapper takes a `/home` snapshot before every apply ("number" cleanup keeps 10;
+  `snapper -c home list`). Rollback = Undo on the card, or the boot menu.
 
 ### Phase 4: proactive
 - Done: weekly update (`agentos-update`, daily user timer, mains power only). In a
