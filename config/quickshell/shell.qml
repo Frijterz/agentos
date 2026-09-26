@@ -24,6 +24,14 @@ ShellRoot {
 
     Osd {}
 
+    Cheatsheet {}
+
+    // qs ipc call cheatsheet toggle  (Super+/)
+    IpcHandler {
+        target: "cheatsheet"
+        function toggle(): void { ShellState.cheatsheetOpen = !ShellState.cheatsheetOpen }
+    }
+
     // qs ipc call claude toggle  (Super+A)
     IpcHandler {
         target: "claude"

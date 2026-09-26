@@ -7,4 +7,5 @@ import Quickshell
 Singleton {
     property bool claudeOpen: false
     property bool screensaver: false
+    property bool cheatsheetOpen: false
 }
