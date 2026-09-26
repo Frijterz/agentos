@@ -56,6 +56,15 @@
     autosuggestion.enable = true;
     syntaxHighlighting.enable = true;
   };
+  # GitHub's noreply address keeps the real email out of the public history.
+  programs.git = {
+    enable = true;
+    settings.user = {
+      name = "Frijterz";
+      email = "120751077+Frijterz@users.noreply.github.com";
+    };
+  };
+
   programs.starship.enable = true;
   programs.btop.enable = true;
 }
