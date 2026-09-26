@@ -12,6 +12,9 @@
     # Agent multiplexer: persistent panes for Claude Code etc. (Super+Enter opens it).
     # Updated by Nix; `herdr update` can't write to the store.
     herdr
+    # Herdr's Claude hook (~/.claude/hooks/herdr-agent-state.sh) is Python: without it
+    # Herdr can't match panes to Claude sessions or restore them after a reboot.
+    python3
   ];
 
   programs.ghostty = {
