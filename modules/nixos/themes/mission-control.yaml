@@ -1,0 +1,34 @@
+# Mission Control: retro sci-fi / NASA-punk. Warm near-black consoles, paper-white
+# text (not pure white, for the OLED), mission orange as the accent, amber and faded
+# telemetry colours for the rest. base0D is the UI accent (bar, panel, borders, links).
+#
+# base00 warm near-black background   base08 warnings and errors
+# base01 panels and toolbars           base09 amber
+# base02 selection, raised surfaces    base0A pale amber
+# base03 comments, dim labels          base0B telemetry green
+# base04 secondary text                base0C faded teal
+# base05 text, old paper               base0D mission orange, the accent
+# base06, base07 brighter text         base0E rust, base0F hull brown
+#
+# No comments after values below: Stylix's YAML parser splits lines on colons.
+system: "base16"
+name: "Mission Control"
+author: "agentos"
+variant: "dark"
+palette:
+  base00: "0c0b0a"
+  base01: "17140f"
+  base02: "241e18"
+  base03: "4f4337"
+  base04: "918272"
+  base05: "d9cdbd"
+  base06: "e8dccb"
+  base07: "f4ebdd"
+  base08: "e0533a"
+  base09: "e8a33d"
+  base0A: "d9c27a"
+  base0B: "97a86b"
+  base0C: "6fa0a0"
+  base0D: "f07f36"
+  base0E: "b56a45"
+  base0F: "7a5846"

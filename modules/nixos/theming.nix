@@ -6,7 +6,7 @@ let
   # Generated so the repo carries no binary wallpaper. Put your own image at
   # ~/.local/state/agentos/wallpaper to use it on the desktop without a rebuild.
   wallpaper = pkgs.runCommand "agentos-wallpaper.png" { nativeBuildInputs = [ pkgs.imagemagick ]; } ''
-    magick -size 1920x1200 radial-gradient:'#313244-#11111b' png:$out
+    magick -size 1920x1200 radial-gradient:'#1a1510-#070605' png:$out
   '';
 in
 {
@@ -14,7 +14,8 @@ in
     enable = true;
     polarity = "dark";
     image = wallpaper;
-    base16Scheme = "${pkgs.base16-schemes}/share/themes/catppuccin-mocha.yaml";
+    # Our own scheme: retro sci-fi / NASA-punk, near-black with mission orange.
+    base16Scheme = ./themes/mission-control.yaml;
 
     fonts = {
       sansSerif = {

@@ -5,6 +5,7 @@
     ./shell.nix
     ./idle.nix
     ./apps.nix
+    ./weather.nix
   ];
 
   home.username = vars.user;
