@@ -9,6 +9,9 @@
     playerctl
     pavucontrol
     networkmanagerapplet
+    # Agent multiplexer: persistent panes for Claude Code etc. (Super+Enter opens it).
+    # Updated by Nix; `herdr update` can't write to the store.
+    herdr
   ];
 
   programs.ghostty = {
