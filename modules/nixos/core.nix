@@ -54,5 +54,6 @@
     fastfetch
     gh
     nodejs
+    alsa-utils # speaker-test, aplay, alsamixer: audio debugging
   ];
 }
