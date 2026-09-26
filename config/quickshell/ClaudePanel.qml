@@ -32,20 +32,57 @@ PanelWindow {
     WlrLayershell.keyboardFocus: ShellState.claudeOpen ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
     property bool busy: false
+    // Claude Code session of this conversation; follow-ups resume it (memory).
+    property string sessionId: ""
 
     function send(prompt) {
         if (!prompt.trim() || busy)
             return;
         messages.append({ who: "you", body: prompt });
-        messages.append({ who: "claude", body: "" });
         busy = true;
-        ask.command = ["agentos-ask", prompt];
+        ask.command = sessionId ? ["agentos-ask", "--resume", sessionId, prompt] : ["agentos-ask", prompt];
         ask.running = true;
     }
 
-    function appendToLast(chunk) {
+    function newChat() {
+        if (busy)
+            return;
+        messages.clear();
+        sessionId = "";
+    }
+
+    // Streamed text goes into the last Claude bubble, or a new one after a tool line.
+    function appendText(chunk) {
         const i = messages.count - 1;
-        messages.setProperty(i, "body", messages.get(i).body + chunk);
+        if (i < 0 || messages.get(i).who !== "claude")
+            messages.append({ who: "claude", body: chunk });
+        else
+            messages.setProperty(i, "body", messages.get(i).body + chunk);
+    }
+
+    function toolLabel(name, input) {
+        const detail = input.command ?? input.file_path ?? input.pattern ?? input.path ?? "";
+        return name + (detail ? " · " + detail : "");
+    }
+
+    // One stream-json event from agentos-ask (see `claude -p --output-format stream-json`).
+    function handle(ev) {
+        if (ev.session_id)
+            sessionId = ev.session_id;
+        if (ev.type === "stream_event") {
+            const e = ev.event;
+            if (e.type === "content_block_delta" && e.delta.type === "text_delta")
+                appendText(e.delta.text);
+        } else if (ev.type === "assistant") {
+            for (const block of ev.message.content)
+                if (block.type === "tool_use")
+                    messages.append({ who: "tool", body: toolLabel(block.name, block.input) });
+        } else if (ev.type === "result") {
+            for (const d of ev.permission_denials ?? [])
+                messages.append({ who: "note", body: "Not allowed: " + toolLabel(d.tool_name, d.tool_input) });
+            if (ev.is_error)
+                messages.append({ who: "note", body: "Error: " + (ev.result ?? ev.subtype) });
+        }
     }
 
     ListModel {
@@ -56,14 +93,20 @@ PanelWindow {
         id: ask
 
         stdout: SplitParser {
-            onRead: data => root.appendToLast(data + "\n")
+            onRead: data => {
+                try {
+                    root.handle(JSON.parse(data));
+                } catch (e) {
+                    console.warn("agentos-ask: unparsed line:", data);
+                }
+            }
         }
         stderr: SplitParser {
             onRead: data => console.warn("agentos-ask:", data)
         }
         onExited: (code, status) => {
             if (code !== 0)
-                root.appendToLast("\n_(agentos-ask exited with code " + code + "; see journalctl --user -u quickshell)_");
+                messages.append({ who: "note", body: "agentos-ask exited with code " + code + "; see journalctl --user -u quickshell" });
             root.busy = false;
             input.forceActiveFocus();
         }
@@ -132,6 +175,22 @@ PanelWindow {
                         NumberAnimation { to: 1; duration: 600; easing.type: Easing.InOutSine }
                     }
                 }
+                // New chat: forget the session so Claude starts fresh.
+                Text {
+                    text: "New chat"
+                    visible: messages.count > 0
+                    color: newChatArea.containsMouse && !root.busy ? Theme.fg : Theme.alpha(Theme.fg, 0.45)
+                    font.family: Theme.fontSans
+                    font.pixelSize: 12
+                    MouseArea {
+                        id: newChatArea
+                        anchors.fill: parent
+                        anchors.margins: -6
+                        hoverEnabled: true
+                        cursorShape: root.busy ? Qt.ArrowCursor : Qt.PointingHandCursor
+                        onClicked: root.newChat()
+                    }
+                }
             }
 
             // Conversation
@@ -145,27 +204,32 @@ PanelWindow {
                 model: messages
                 onContentHeightChanged: Qt.callLater(positionViewAtEnd)
 
+                // who: "you" | "claude" (bubbles) or "tool" | "note" (small status lines).
                 delegate: Rectangle {
                     required property string who
                     required property string body
+                    readonly property bool line: who === "tool" || who === "note"
 
                     width: ListView.view.width
-                    height: txt.implicitHeight + 20
+                    height: txt.implicitHeight + (line ? 4 : 20)
                     radius: 14
-                    color: who === "you" ? Theme.alpha(Theme.accent, 0.14) : Theme.alpha(Theme.fg, 0.05)
+                    color: line ? "transparent" : who === "you" ? Theme.alpha(Theme.accent, 0.14) : Theme.alpha(Theme.fg, 0.05)
 
                     Text {
                         id: txt
                         anchors.left: parent.left
                         anchors.right: parent.right
                         anchors.top: parent.top
-                        anchors.margins: 10
-                        text: body.length ? body : "…"
+                        anchors.margins: line ? 2 : 10
+                        anchors.leftMargin: 10
+                        text: who === "tool" ? "⚙ " + body : who === "note" ? "⚠ " + body : body
                         textFormat: who === "claude" ? Text.MarkdownText : Text.PlainText
-                        wrapMode: Text.Wrap
-                        color: Theme.fg
-                        font.family: Theme.fontSans
-                        font.pixelSize: 13
+                        wrapMode: line ? Text.WrapAnywhere : Text.Wrap
+                        maximumLineCount: line ? 3 : 100000
+                        elide: Text.ElideRight
+                        color: who === "note" ? Theme.warn : line ? Theme.alpha(Theme.fg, 0.55) : Theme.fg
+                        font.family: line ? Theme.fontMono : Theme.fontSans
+                        font.pixelSize: line ? 11 : 13
                         onLinkActivated: link => Qt.openUrlExternally(link)
                     }
                 }

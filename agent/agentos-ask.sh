@@ -1,4 +1,5 @@
-# agentos-ask "<question>": ask Claude from the desktop (used by the Claude panel).
+# agentos-ask [--resume <session-id>] "<question>": ask Claude from the desktop.
+# Used by the Claude panel; prints Claude Code's stream-json events, one per line.
 # Packaged by modules/nixos/agent.nix (writeShellApplication adds the shebang and
 # `set -euo pipefail`).
 #
@@ -8,7 +9,12 @@
 # Applying (sudo), pushing and arbitrary hyprctl dispatches stay with the user.
 # Note: Claude Code also runs commands it recognises as read-only (uname, grep, ...).
 
-prompt="${1:?usage: agentos-ask \"<question>\"}"
+resume=()
+if [ "${1:-}" = "--resume" ]; then
+  resume=(--resume "${2:?--resume needs a session id}")
+  shift 2
+fi
+prompt="${1:?usage: agentos-ask [--resume <session-id>] \"<question>\"}"
 repo="${AGENTOS_FLAKE:-$HOME/agentos}"
 
 context="$(
@@ -20,12 +26,12 @@ context="$(
   printf 'You may edit this repo, run nh os build and commit, following CLAUDE.md. Edits to\n'
   printf 'config/hypr and config/quickshell apply live immediately. You cannot apply system\n'
   printf 'changes: after a successful build, tell the user to run nh os switch in a terminal.\n'
-  printf 'Each question starts a fresh session: do the whole task in one go.\n'
 )"
 
 cd "$repo" || exit 1
 
-exec claude -p "$prompt" \
+exec claude -p "$prompt" "${resume[@]}" \
+  --output-format stream-json --verbose --include-partial-messages \
   --append-system-prompt "$context" \
   --permission-mode acceptEdits \
   --allowedTools \
