@@ -9,7 +9,8 @@
 # adopt: after the panel applied the update, fast-forward the repo to that commit.
 
 repo="${AGENTOS_FLAKE:-$HOME/agentos}"
-host="${AGENTOS_HOST:?AGENTOS_HOST not set}"
+# The service sets AGENTOS_HOST; by hand, the hostname is the flake's host name.
+host="${AGENTOS_HOST:-$(uname -n)}"
 state="${XDG_STATE_HOME:-$HOME/.local/state}/agentos"
 tree="${XDG_CACHE_HOME:-$HOME/.cache}/agentos/update-tree"
 info="$state/update.json"
