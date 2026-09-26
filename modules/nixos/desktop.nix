@@ -50,5 +50,9 @@ in
   security.pam.services.greetd.enableGnomeKeyring = true;
 
   services.blueman.enable = true;
-  programs.firefox.enable = true;
+
+  # Browser: Chromium (native Wayland via NIXOS_OZONE_WL above). programs.chromium only
+  # manages its policies; Stylix uses them for the theme colour.
+  environment.systemPackages = [ pkgs.chromium ];
+  programs.chromium.enable = true;
 }

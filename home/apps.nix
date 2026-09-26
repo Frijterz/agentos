@@ -17,6 +17,26 @@
     python3
   ];
 
+  # Links and web files open in Chromium (Super+B).
+  xdg.mimeApps = {
+    enable = true;
+    defaultApplications =
+      let
+        browser = "chromium-browser.desktop";
+      in
+      {
+        "text/html" = browser;
+        "application/xhtml+xml" = browser;
+        "x-scheme-handler/http" = browser;
+        "x-scheme-handler/https" = browser;
+        "x-scheme-handler/about" = browser;
+        "x-scheme-handler/unknown" = browser;
+        # claude-cli:// links (e.g. signing in from the browser): Claude Code's own
+        # handler, which it wrote to mimeapps.list before Home Manager managed the file.
+        "x-scheme-handler/claude-cli" = "claude-code-url-handler.desktop";
+      };
+  };
+
   programs.ghostty = {
     enable = true;
     settings = {
