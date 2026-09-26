@@ -29,9 +29,9 @@ PanelWindow {
 
     WlrLayershell.layer: WlrLayer.Top
     WlrLayershell.namespace: "agentos-claude"
-    // OnDemand, not Exclusive: other windows (and the polkit password dialog) can still
-    // take focus. While a switch waits for the password, let go entirely.
-    WlrLayershell.keyboardFocus: ShellState.claudeOpen && !switchProc.running ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+    // OnDemand, not Exclusive: other windows (and PolkitDialog) can still take focus.
+    // While an Apply card asks for the password, hold the keyboard so it goes there.
+    WlrLayershell.keyboardFocus: !ShellState.claudeOpen ? WlrKeyboardFocus.None : ShellState.authIsApply ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.OnDemand
 
     property bool busy: false
     // Claude Code session of this conversation; follow-ups resume it (memory).
@@ -262,7 +262,7 @@ PanelWindow {
                 waiting: "A weekly system update is ready:",
                 stale: "The prepared update is outdated (the repo changed since). Rebuild it?",
                 rebuilding: "Rebuilding the update in the background; you'll get a notification.",
-                applying: "Applying… (enter your password when asked)",
+                applying: ShellState.authIsApply ? "󰌾 Enter your system password to apply:" : "Applying…",
                 applied: "✓ Update applied; flake.lock committed (not pushed).",
                 rolledback: "↶ Rolled back to the previous generation",
                 failed: "✕ Not applied (see the note below)",
@@ -270,7 +270,7 @@ PanelWindow {
             }[state] ?? state;
         return {
             waiting: "A new system build is ready to apply:",
-            applying: "Applying… (enter your password when asked)",
+            applying: ShellState.authIsApply ? "󰌾 Enter your system password to apply:" : "Applying…",
             applied: "✓ Applied. Ask Claude to commit if it hasn't.",
             rolledback: "↶ Rolled back to the previous generation",
             failed: "✕ Not applied (see the note below)",
@@ -306,6 +306,9 @@ PanelWindow {
 
         property string rid
         property string nextState
+
+        // Tells ShellState that systemd's password prompt belongs in our card.
+        onRunningChanged: ShellState.applyRunning = running
 
         stderr: StdioCollector {
             id: switchErr
@@ -424,6 +427,11 @@ PanelWindow {
                 input.forceActiveFocus();
                 root.checkPending(); // e.g. built with nh os build in a terminal
             }
+        }
+        // An Apply / Undo password prompt: make sure it's on screen.
+        function onAuthIsApplyChanged() {
+            if (ShellState.authIsApply)
+                ShellState.claudeOpen = true;
         }
     }
 
@@ -568,6 +576,15 @@ PanelWindow {
                             font.pixelSize: 12
                         }
 
+                        // The system password for Apply / Undo, right in the card.
+                        AuthField {
+                            id: cardAuth
+                            width: parent.width
+                            visible: entry.state === "applying" && ShellState.authIsApply
+                            flow: visible ? ShellState.authFlow : null
+                            onVisibleChanged: if (visible) focusField()
+                        }
+
                         Row {
                             spacing: 8
 
@@ -704,8 +721,9 @@ PanelWindow {
                 id: input
 
                 Layout.fillWidth: true
-                enabled: !root.busy
-                placeholderText: root.busy ? "Thinking…" : "Ask Claude…"
+                // Locked during a password prompt, so the password can't end up in the chat.
+                enabled: !root.busy && !ShellState.authIsApply
+                placeholderText: ShellState.authIsApply ? "Enter your password in the card above" : root.busy ? "Thinking…" : "Ask Claude…"
                 placeholderTextColor: Theme.alpha(Theme.fg, 0.4)
                 color: Theme.fg
                 font.family: Theme.fontSans

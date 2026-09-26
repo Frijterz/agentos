@@ -34,7 +34,6 @@ in
 
   xdg.portal.extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
   environment.sessionVariables.NIXOS_OZONE_WL = "1"; # Electron/Chromium apps on Wayland
-
   services.pipewire = {
     enable = true;
     alsa.enable = true;
@@ -43,10 +42,9 @@ in
   };
   security.rtkit.enable = true;
 
-  # Graphical password prompts for privileged actions.
+  # Graphical password prompts for privileged actions. The polkit agent is Quickshell
+  # (config/quickshell/ShellState.qml): themed prompts, and Apply's inside the panel card.
   security.polkit.enable = true;
-  systemd.packages = [ pkgs.hyprpolkitagent ];
-  systemd.user.services.hyprpolkitagent.wantedBy = [ "graphical-session.target" ];
 
   services.gnome.gnome-keyring.enable = true;
   security.pam.services.greetd.enableGnomeKeyring = true;

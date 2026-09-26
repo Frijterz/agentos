@@ -28,6 +28,9 @@ ShellRoot {
 
     Overview {}
 
+    // System password prompts (polkit agent lives in ShellState).
+    PolkitDialog {}
+
     // qs ipc call overview toggle  (Super+Tab)
     IpcHandler {
         target: "overview"
