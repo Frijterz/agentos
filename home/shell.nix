@@ -9,6 +9,16 @@
 let
   colors = osConfig.lib.stylix.colors.withHashtag;
   fonts = osConfig.stylix.fonts;
+
+  # The Claude mark for the bar button and the panel header, from Simple Icons (pinned),
+  # in Claude's terracotta. Fetched at build time rather than committed: it's Anthropic's
+  # trademark and this repo is public. Theme.qml falls back to ✦ without it.
+  claudeIcon = pkgs.runCommand "claude-icon.svg" {
+    src = pkgs.fetchurl {
+      url = "https://cdn.jsdelivr.net/npm/simple-icons@16.32.0/icons/claude.svg";
+      hash = "sha256-LW/aeesY3czKNbeZ7rPOzg36vCJSDOOxCr0lZo35+pM=";
+    };
+  } ''sed 's/<path /<path fill="#D97757" /' "$src" > "$out"'';
 in
 {
   home.packages = [ pkgs.quickshell ];
@@ -39,6 +49,7 @@ in
       ;
     fontSans = fonts.sansSerif.name;
     fontMono = fonts.monospace.name;
+    claudeIcon = "${claudeIcon}";
   };
 
   systemd.user.services.quickshell = {

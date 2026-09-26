@@ -5,7 +5,7 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
 
-// Slide-in Claude panel (Super+A or the ✦ button, Esc to close).
+// Slide-in Claude panel (Super+A or the Claude button in the bar, Esc to close).
 // Phase 1: questions go to `agentos-ask`, which runs Claude Code headless inside
 // the agentos repo; it may edit and build there, never switch.
 PanelWindow {
@@ -544,10 +544,8 @@ PanelWindow {
             RowLayout {
                 spacing: 10
 
-                Text {
-                    text: "✦"
-                    color: Theme.accent2
-                    font.pixelSize: 20
+                ClaudeMark {
+                    size: 20
                 }
                 Text {
                     Layout.fillWidth: true

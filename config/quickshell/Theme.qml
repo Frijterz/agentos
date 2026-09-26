@@ -23,6 +23,10 @@ Singleton {
     readonly property string fontSans: scheme.fontSans ?? "Inter"
     readonly property string fontMono: scheme.fontMono ?? "JetBrainsMono Nerd Font"
 
+    // Claude's mark (SVG path from home/shell.nix); "" means use the ✦ fallback.
+    readonly property string claudeIcon: scheme.claudeIcon ?? ""
+    readonly property color claude: "#D97757" // Claude's brand terracotta
+
     // Motion: tune the feel of every animation in one place.
     readonly property int fast: 160
     readonly property int medium: 280

@@ -174,17 +174,15 @@ PanelWindow {
                 height: 30
                 radius: 15
                 anchors.verticalCenter: parent.verticalCenter
-                color: ShellState.claudeOpen ? Theme.accent2 : hover.hovered ? Theme.alpha(Theme.accent2, 0.25) : "transparent"
+                color: ShellState.claudeOpen ? Theme.alpha(Theme.claude, 0.3) : hover.hovered ? Theme.alpha(Theme.claude, 0.15) : "transparent"
 
                 Behavior on color {
                     ColorAnimation { duration: Theme.fast }
                 }
 
-                Text {
+                ClaudeMark {
                     anchors.centerIn: parent
-                    text: "✦"
-                    color: ShellState.claudeOpen ? Theme.bg : Theme.accent2
-                    font.pixelSize: 16
+                    size: 17
                 }
 
                 HoverHandler {
