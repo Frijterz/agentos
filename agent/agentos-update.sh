@@ -53,12 +53,21 @@ run() {
 
   nix build "$tree#nixosConfigurations.$host.config.system.build.toplevel" --out-link "$tree/result"
   path="$(readlink -f "$tree/result")"
+  # New inputs can still give the very same system (nothing that we use changed).
+  if [ "$path" = "$(readlink -f /run/current-system)" ]; then
+    echo "agentos-update: inputs moved, but the system is identical; nothing to apply."
+    rm -f "$info"
+    touch "$stamp"
+    exit 0
+  fi
   diff="$(nvd diff /run/current-system "$path" | tail -n +3)"
 
-  # Tool-less Claude: it only sees the package list. Optional: the update works without it.
-  summary="$(printf '%s\n' "$diff" | timeout 180 claude -p --disallowedTools '*' \
-    "Below is the nvd package diff of a weekly NixOS update for a Zenbook running Hyprland and Quickshell. Summarise it for the owner in at most 5 short bullets: notable version bumps (kernel, Hyprland, Quickshell, Mesa, firmware, Claude Code), anything that might need attention after the switch. Plain text, no preamble." ||
-    true)"
+  # Tool-less Claude: it only sees the package list (stdin). The prompt must come
+  # before --disallowedTools, which takes a list and would swallow it. Run outside the
+  # repo so it doesn't load CLAUDE.md. Optional: the update works without a summary.
+  summary="$(cd "$state" && printf '%s\n' "$diff" | timeout 180 claude -p \
+    "Stdin is the nvd package diff of a weekly NixOS update for a Zenbook running Hyprland and Quickshell. Summarise it for the owner in at most 5 short bullets: notable version bumps (kernel, Hyprland, Quickshell, Mesa, firmware, Claude Code), anything that might need attention after the switch. Plain text, no preamble." \
+    --disallowedTools '*' || true)"
 
   jq -n --arg path "$path" --arg hash "$(basename "$path" | cut -c 1-32)" --arg base "$head" \
     --arg diff "$diff" --arg summary "$summary" --arg date "$(date -I)" \
