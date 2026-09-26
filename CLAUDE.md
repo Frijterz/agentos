@@ -52,3 +52,7 @@ Iterate on the look here, with small steps the user can see immediately.
 - Hardware: both CS35L41 speakers with ASUS tuning, suspend (s2idle reaches hardware
   sleep), 80% charge limit survives resume. No OLED flicker, so
   `amdgpu.dcdebugmask=0x410` stays off. Media keys need Fn unless Fn-lock (Fn+Esc) is on.
+- Built-in mic (2026-09-27): a digital mic on the Realtek ALC294 (pin 0x12), not on the
+  AMD ACP; the acp70 "No matching ASoC machine driver" warning is harmless (the BIOS
+  reports no ACP mics). At 100% input volume it clips into noise; ~25% is right and
+  WirePlumber remembers it. Each recording starts with a ~0.5 s pop.
