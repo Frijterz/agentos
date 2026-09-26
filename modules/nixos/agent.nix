@@ -8,6 +8,19 @@
   ...
 }:
 let
+  # Plan limits for the panel's meters, via Claude Code's `/usage` (no model turn).
+  agentos-usage = pkgs.writeShellApplication {
+    name = "agentos-usage";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.gnugrep
+      pkgs.gnused
+      pkgs.jq
+      pkgs.claude-code
+    ];
+    text = builtins.readFile ../../agent/agentos-usage.sh;
+  };
+
   # Desktop modes (normal / battery / presentation / focus): bar chip, Super+M, Claude.
   agentos-mode = pkgs.writeShellApplication {
     name = "agentos-mode";
@@ -126,6 +139,7 @@ in
     agentos-update
     agentos-watch
     agentos-mode
+    agentos-usage
   ];
 
   # Modes last for one session: start every login in normal mode, so a forgotten

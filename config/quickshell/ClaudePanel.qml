@@ -72,6 +72,73 @@ PanelWindow {
             return;
         messages.clear();
         sessionId = "";
+        ctxUsed = 0;
+    }
+
+    // ── Usage meters: plan limits (rate_limit_event) and this chat's context ──
+    // Limits only arrive with a reply, so the last ones are kept in usage.json.
+    property var limits: ({})
+    property int ctxUsed: 0
+    property int ctxWindow: 0
+    property real now: Date.now() / 1000
+
+    Timer {
+        interval: 60000
+        running: ShellState.claudeOpen
+        repeat: true
+        triggeredOnStart: true
+        onTriggered: root.now = Date.now() / 1000
+    }
+
+    FileView {
+        id: usageFile
+        path: (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state") + "/agentos/usage.json"
+        printErrors: false
+        onLoaded: {
+            try {
+                root.limits = JSON.parse(text()).limits ?? {};
+            } catch (e) {}
+        }
+    }
+
+    // Fresh limits whenever the panel opens (at most once a minute): agentos-usage
+    // reads Claude Code's /usage, which costs no model turn.
+    property real limitsFetched: 0
+
+    function refreshLimits() {
+        if (usageProc.running || Date.now() / 1000 - limitsFetched < 60)
+            return;
+        limitsFetched = Date.now() / 1000;
+        usageProc.running = true;
+    }
+
+    Process {
+        id: usageProc
+        command: ["agentos-usage"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    const fresh = JSON.parse(text);
+                    root.limits = Object.assign({}, root.limits, fresh);
+                    usageFile.setText(JSON.stringify({ limits: root.limits }));
+                } catch (e) {
+                    root.limitsFetched = 0; // no output: keep the last values, retry next open
+                }
+            }
+        }
+    }
+
+    function resetLabel(at) {
+        if (!at)
+            return "";
+        if (at <= now)
+            return "reset since";
+        const d = new Date(at * 1000);
+        return "resets " + Qt.formatDateTime(d, at - now < 86400 ? "HH:mm" : "ddd HH:mm");
+    }
+
+    function tokens(n) {
+        return n >= 1e6 ? (n / 1e6).toFixed(n % 1e6 ? 1 : 0) + "M" : n >= 1000 ? Math.round(n / 1000) + "k" : String(n);
     }
 
     // Streamed text goes into the last Claude bubble, or a new one after a tool line.
@@ -96,11 +163,24 @@ PanelWindow {
             const e = ev.event;
             if (e.type === "content_block_delta" && e.delta.type === "text_delta")
                 appendText(e.delta.text);
+        } else if (ev.type === "rate_limit_event") {
+            const windows = ev.rate_limit_info?.unifiedWindows;
+            if (windows) {
+                limits = windows;
+                usageFile.setText(JSON.stringify({ limits: windows }));
+            }
         } else if (ev.type === "assistant") {
             for (const block of ev.message.content)
                 if (block.type === "tool_use")
                     add("tool", toolLabel(block.name, block.input));
+            // Context now = everything this reply was given plus what it wrote.
+            // Subagents (parent_tool_use_id) have their own context; skip them.
+            const u = ev.message.usage;
+            if (u && !ev.parent_tool_use_id)
+                ctxUsed = (u.input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0) + (u.cache_creation_input_tokens ?? 0) + (u.output_tokens ?? 0);
         } else if (ev.type === "result") {
+            for (const m of Object.values(ev.modelUsage ?? {}))
+                ctxWindow = Math.max(ctxWindow, m.contextWindow ?? 0);
             // Includes deny rules (sudo, switch, push) that never reach a card.
             for (const d of ev.permission_denials ?? [])
                 add("note", "Not allowed: " + toolLabel(d.tool_name, d.tool_input));
@@ -426,6 +506,7 @@ PanelWindow {
             if (ShellState.claudeOpen) {
                 input.forceActiveFocus();
                 root.checkPending(); // e.g. built with nh os build in a terminal
+                root.refreshLimits();
             }
         }
         // An Apply / Undo password prompt: make sure it's on screen.
@@ -504,6 +585,77 @@ PanelWindow {
                         hoverEnabled: true
                         cursorShape: root.busy ? Qt.ArrowCursor : Qt.PointingHandCursor
                         onClicked: root.newChat()
+                    }
+                }
+            }
+
+            // Usage: plan limits (whole account) and this chat's context window.
+            Column {
+                Layout.fillWidth: true
+                spacing: 5
+
+                Repeater {
+                    model: {
+                        const l = root.limits, fh = l.five_hour, sd = l.seven_day;
+                        const live = w => w && w.resetsAt > root.now ? w.utilization : (w ? 0 : -1);
+                        return [
+                            { label: "5-hour", value: live(fh), detail: root.resetLabel(fh?.resetsAt) },
+                            { label: "Weekly", value: live(sd), detail: root.resetLabel(sd?.resetsAt) },
+                            { label: "Context", value: root.ctxWindow ? root.ctxUsed / root.ctxWindow : (root.ctxUsed ? -1 : 0), detail: root.ctxWindow ? root.tokens(root.ctxUsed) + " / " + root.tokens(root.ctxWindow) : "" }
+                        ];
+                    }
+
+                    // value: 0–1, or -1 = not known yet (no reply seen).
+                    delegate: RowLayout {
+                        required property var modelData
+                        readonly property bool known: modelData.value >= 0
+                        readonly property real v: Math.min(1, Math.max(0, modelData.value))
+
+                        width: parent.width
+                        spacing: 8
+
+                        Text {
+                            Layout.preferredWidth: 52
+                            text: modelData.label
+                            color: Theme.alpha(Theme.fg, 0.55)
+                            font.family: Theme.fontSans
+                            font.pixelSize: 11
+                        }
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            height: 5
+                            radius: 2.5
+                            color: Theme.alpha(Theme.fg, 0.1)
+
+                            Rectangle {
+                                width: parent.width * parent.parent.v
+                                height: parent.height
+                                radius: parent.radius
+                                color: parent.parent.v >= 0.8 ? Theme.warn : Theme.accent
+                                Behavior on width {
+                                    NumberAnimation { duration: Theme.medium; easing.type: Easing.OutCubic }
+                                }
+                            }
+                        }
+
+                        Text {
+                            Layout.preferredWidth: 30
+                            horizontalAlignment: Text.AlignRight
+                            text: parent.known ? Math.round(parent.v * 100) + "%" : "–"
+                            color: parent.v >= 0.8 ? Theme.warn : Theme.fg
+                            font.family: Theme.fontSans
+                            font.pixelSize: 11
+                        }
+
+                        Text {
+                            Layout.preferredWidth: 104
+                            text: modelData.detail
+                            color: Theme.alpha(Theme.fg, 0.45)
+                            font.family: Theme.fontSans
+                            font.pixelSize: 11
+                            elide: Text.ElideRight
+                        }
                     }
                 }
             }
