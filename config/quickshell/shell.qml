@@ -26,6 +26,14 @@ ShellRoot {
 
     Cheatsheet {}
 
+    Overview {}
+
+    // qs ipc call overview toggle  (Super+Tab)
+    IpcHandler {
+        target: "overview"
+        function toggle(): void { ShellState.overviewOpen = !ShellState.overviewOpen }
+    }
+
     // qs ipc call cheatsheet toggle  (Super+/)
     IpcHandler {
         target: "cheatsheet"
