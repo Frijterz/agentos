@@ -1,4 +1,13 @@
-# ASUS Zenbook 14 OLED (UM3406HA / UM3406KA / UM3406GA): hardware quirks.
+# ASUS Zenbook 14 OLED UM3406KA: hardware quirks.
+# Seen on the NixOS live USB (kernel 6.18), 2026-09-26:
+#   CPU/GPU  Ryzen AI 7 350, Radeon 860M (Krackan), 32 GB
+#   Display  Samsung 1920×1200 OLED, 60 Hz, HDR metadata (~600 nits)
+#   Wi-Fi    MediaTek MT7922 (mt7921e): works
+#   Audio    ALC294 + 2× Cirrus CS35L41 amps: UM3406KA tuning firmware loads
+#   NPU      amdxdna driver binds
+#   Battery  BAT0, charge_control_end_threshold supported
+#   Sleep    s2idle only (normal for this platform)
+#   SSD      Micron 2500 1 TB (nvme0n1)
 # Keep everything model-specific here so it can later be upstreamed to nixos-hardware.
 { pkgs, ... }:
 {
@@ -29,6 +38,6 @@
     ACTION=="add|change", SUBSYSTEM=="power_supply", KERNEL=="BAT*", ATTR{charge_control_end_threshold}="80"
   '';
 
-  # MediaTek Wi-Fi (MT7922 / MT7925): if the connection drops, try:
+  # MediaTek MT7922 Wi-Fi: if the connection drops, try:
   # networking.networkmanager.wifi.powersave = false;
 }

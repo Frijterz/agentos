@@ -6,7 +6,7 @@ let
   # Generated so the repo carries no binary wallpaper. Put your own image at
   # ~/.local/state/agentos/wallpaper to use it on the desktop without a rebuild.
   wallpaper = pkgs.runCommand "agentos-wallpaper.png" { nativeBuildInputs = [ pkgs.imagemagick ]; } ''
-    magick -size 2880x1800 radial-gradient:'#313244-#11111b' png:$out
+    magick -size 1920x1200 radial-gradient:'#313244-#11111b' png:$out
   '';
 in
 {

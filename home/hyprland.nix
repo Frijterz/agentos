@@ -1,9 +1,7 @@
-# Home Manager generates ~/.config/hypr/hyprland.conf with the plugin lines and
-# Stylix colours, then sources config/hypr/hyprland.conf straight from this repo.
+# Home Manager generates ~/.config/hypr/hyprland.conf with the Stylix colours, then sources config/hypr/hyprland.conf straight from this repo.
 # That file is live: edit and save, and Hyprland reloads it without a rebuild.
 {
   lib,
-  pkgs,
   vars,
   ...
 }:
@@ -16,7 +14,11 @@
     # uwsm manages the session and graphical-session.target.
     systemd.enable = false;
 
-    plugins = [ pkgs.hyprlandPlugins.hyprexpo ];
+    # Home Manager defaults to Lua configs from stateVersion 26.05; config/hypr is hyprlang.
+    configType = "hyprlang";
+
+    # No plugins: they break on every Hyprland update (hyprexpo is gone, hyprspace
+    # doesn't build on 0.56). The workspace overview will live in Quickshell instead.
 
     extraConfig = ''
       source = ${vars.flakeDir}/config/hypr/hyprland.conf

@@ -40,7 +40,7 @@ agent/                     Claude layer (agentos-ask, roadmap)
 | Super + Space | Launcher |
 | Super + Enter | Terminal (Ghostty) |
 | Super + B | Firefox |
-| Super + Tab | Workspace overview (hyprexpo) |
+| Super + Tab | Previous workspace (overview planned in Quickshell) |
 | Super + 1…9 / Shift | Go to / move to workspace |
 | Super + arrows / Shift | Move focus / move window |
 | Super + Q · F · T | Close · fullscreen · float |
