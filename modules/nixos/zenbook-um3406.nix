@@ -34,8 +34,10 @@
   services.fwupd.enable = true;
 
   # Stop charging at 80% to extend battery life (asus-wmi charge threshold).
+  # At boot BAT0 appears before asus-wmi adds the attribute; TEST skips that early
+  # event quietly and a later "change" event sets it.
   services.udev.extraRules = ''
-    ACTION=="add|change", SUBSYSTEM=="power_supply", KERNEL=="BAT*", ATTR{charge_control_end_threshold}="80"
+    ACTION=="add|change", SUBSYSTEM=="power_supply", KERNEL=="BAT*", TEST=="charge_control_end_threshold", ATTR{charge_control_end_threshold}="80"
   '';
 
   # MediaTek MT7922 Wi-Fi: if the connection drops, try:
