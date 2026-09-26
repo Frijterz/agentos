@@ -22,6 +22,8 @@ ShellRoot {
 
     ClaudePanel {}
 
+    Osd {}
+
     // qs ipc call claude toggle  (Super+A)
     IpcHandler {
         target: "claude"
