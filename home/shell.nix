@@ -46,6 +46,8 @@ in
       Description = "Quickshell (agentos desktop shell)";
       PartOf = [ "graphical-session.target" ];
       After = [ "graphical-session.target" ];
+      # FileView misses Home Manager's symlink swap, so restart on a new theme instead.
+      X-Restart-Triggers = [ config.xdg.configFile."agentos/theme.json".source ];
     };
     Service = {
       ExecStart = "${pkgs.quickshell}/bin/quickshell";
