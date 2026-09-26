@@ -6,7 +6,7 @@ directly. It changes this repo, and a human-approved switch applies it.**
 
 ## Phases
 
-### Phase 1: ask & propose (now)
+### Phase 1: ask & propose (done)
 - `agentos-ask` (Super+A panel): headless Claude Code in `~/agentos`. It may edit the
   repo, `nh os build` and commit; no sudo, switch or push (see agent/agentos-ask.sh).
 - `claude` in a terminal in `~/agentos`: full pair-programming on the OS. Claude edits
@@ -14,12 +14,16 @@ directly. It changes this repo, and a human-approved switch applies it.**
 - Live files (`config/hypr`, `config/quickshell`) apply on save without a rebuild,
   so Claude can iterate on the look with you in real time.
 
-### Phase 2: streaming panel + desktop context
-- Replace `claude -p` with a small daemon on the **Claude Agent SDK** (TypeScript or
-  Python), talking to the panel over a Unix socket: streaming tokens, conversation
-  memory, tool-call cards in the UI.
-- Context tools: active window, workspace layout (`hyprctl -j`), screenshot of the
-  focused window (`grim`) on request, clipboard, notifications.
+### Phase 2: streaming panel + approvals + desktop context
+Built on the `claude` CLI rather than the Agent SDK, so it runs on the Claude
+subscription login (the SDK docs direct you to an API key instead).
+- Done: `claude -p --output-format stream-json` streams into the panel, with tool
+  calls shown as lines; `--resume` gives conversation memory until "New chat".
+- Done: approval cards. A `PermissionRequest` hook (`agentos-approve`) sends anything
+  not on the allow list to the panel over `$XDG_RUNTIME_DIR/agentos-approve.sock`
+  and waits for Deny / Allow once.
+- Todo: context tools: active window, workspace layout (`hyprctl -j`), screenshot of
+  the focused window (`grim`) on request, clipboard, notifications.
 
 ### Phase 3: apply with approval
 - A tiny privileged helper (systemd service) exposes exactly one action:
