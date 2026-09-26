@@ -43,7 +43,8 @@ hooks='{"hooks":{"PermissionRequest":[{"matcher":"*","hooks":[{"type":"command",
 
 # No bare tool names: "Read" alone would approve reads of any path. Reads and edits
 # inside the repo need no rule (working directory + acceptEdits); elsewhere they ask.
-exec claude -p "$prompt" "${resume[@]}" \
+# </dev/null: the panel gives no stdin, and claude would wait 3s for it every time.
+exec claude -p "$prompt" "${resume[@]}" </dev/null \
   --output-format stream-json --verbose --include-partial-messages \
   --append-system-prompt "$context" \
   --settings "$hooks" \

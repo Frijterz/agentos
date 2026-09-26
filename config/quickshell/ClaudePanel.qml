@@ -524,7 +524,7 @@ PanelWindow {
                     readonly property bool card: who === "approve" || who === "apply" || who === "update" || who === "health"
 
                     width: ListView.view.width
-                    height: card ? cardCol.implicitHeight + 24 : txt.implicitHeight + (line ? 4 : 20)
+                    height: card ? cardCol.implicitHeight + 24 : line ? txt.implicitHeight + 4 : bubble.implicitHeight + 20
                     radius: 14
                     color: line ? "transparent" : card ? Theme.alpha(Theme.accent2, 0.1) : who === "you" ? Theme.alpha(Theme.accent, 0.14) : Theme.alpha(Theme.fg, 0.05)
                     border.width: card && (state === "waiting" || state === "applying") ? 1 : 0
@@ -549,13 +549,19 @@ PanelWindow {
                             font.pixelSize: 12
                         }
 
-                        Text {
+                        // Selectable (mouse + Ctrl+C); capped height instead of elide,
+                        // which TextEdit lacks.
+                        TextEdit {
                             width: parent.width
+                            height: Math.min(implicitHeight, (entry.who === "approve" ? 14 : 30) * font.pixelSize * 1.35)
+                            clip: true
                             text: entry.body
-                            textFormat: Text.PlainText
-                            wrapMode: Text.WrapAnywhere
-                            maximumLineCount: entry.who === "approve" ? 14 : 30
-                            elide: Text.ElideRight
+                            textFormat: TextEdit.PlainText
+                            wrapMode: TextEdit.WrapAnywhere
+                            readOnly: true
+                            selectByMouse: true
+                            selectionColor: Theme.alpha(Theme.accent, 0.4)
+                            selectedTextColor: Theme.fg
                             color: Theme.fg
                             opacity: entry.state === "waiting" || entry.state === "applying" ? 1 : 0.55
                             font.family: Theme.fontMono
@@ -600,22 +606,43 @@ PanelWindow {
                         }
                     }
 
+                    // Status lines: short, elided.
                     Text {
-                        visible: !entry.card
                         id: txt
+                        visible: entry.line
                         anchors.left: parent.left
                         anchors.right: parent.right
                         anchors.top: parent.top
-                        anchors.margins: line ? 2 : 10
+                        anchors.margins: 2
                         anchors.leftMargin: 10
-                        text: who === "tool" ? "⚙ " + body : who === "note" ? "⚠ " + body : body
-                        textFormat: who === "claude" ? Text.MarkdownText : Text.PlainText
-                        wrapMode: line ? Text.WrapAnywhere : Text.Wrap
-                        maximumLineCount: who === "note" ? 14 : line ? 3 : 100000
+                        text: who === "tool" ? "⚙ " + body : "⚠ " + body
+                        textFormat: Text.PlainText
+                        wrapMode: Text.WrapAnywhere
+                        maximumLineCount: who === "note" ? 14 : 3
                         elide: Text.ElideRight
-                        color: who === "note" ? Theme.warn : line ? Theme.alpha(Theme.fg, 0.55) : Theme.fg
-                        font.family: line ? Theme.fontMono : Theme.fontSans
-                        font.pixelSize: line ? 11 : 13
+                        color: who === "note" ? Theme.warn : Theme.alpha(Theme.fg, 0.55)
+                        font.family: Theme.fontMono
+                        font.pixelSize: 11
+                    }
+
+                    // Bubbles: selectable, so you can copy with the mouse + Ctrl+C.
+                    TextEdit {
+                        id: bubble
+                        visible: !entry.card && !entry.line
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.margins: 10
+                        text: body
+                        textFormat: who === "claude" ? TextEdit.MarkdownText : TextEdit.PlainText
+                        wrapMode: TextEdit.Wrap
+                        readOnly: true
+                        selectByMouse: true
+                        selectionColor: Theme.alpha(Theme.accent, 0.4)
+                        selectedTextColor: Theme.fg
+                        color: Theme.fg
+                        font.family: Theme.fontSans
+                        font.pixelSize: 13
                         onLinkActivated: link => Qt.openUrlExternally(link)
                     }
                 }
