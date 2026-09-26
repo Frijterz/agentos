@@ -25,12 +25,15 @@ subscription login (the SDK docs direct you to an API key instead).
 - Todo: context tools: active window, workspace layout (`hyprctl -j`), screenshot of
   the focused window (`grim`) on request, clipboard, notifications.
 
-### Phase 3: apply with approval
-- A tiny privileged helper (systemd service) exposes exactly one action:
-  "switch to the already-built generation at /nix/store/…-nixos-system-…".
-- The daemon builds unprivileged, shows the `nvd` package diff + git diff in the
-  panel, and the helper only runs after you click Approve (polkit prompt).
-- `/home` snapshot before, commit after. Rollback = one button (or the boot menu).
+### Phase 3: apply with approval (done)
+- `agentos-switch@<hash>.service` (root, oneshot) does exactly one thing: switch to the
+  existing `nixos-system-<host>` build with that store hash, or `@rollback` to the
+  previous generation. It takes no path from outside and validates the build.
+- polkit lets only you start it, with your password every time (no "remember me").
+- The panel runs `agentos-pending` after each reply and on open; a new build shows up
+  as a card with the `nvd` package diff and git state, and Apply / Undo buttons.
+- A read-only `/home` Btrfs snapshot is taken before every apply (newest 5 in
+  `/home/.snapshots`). Rollback = Undo on the card, or the boot menu.
 
 ### Phase 4: proactive
 - Watch the journal, battery, updates, and failed units; suggest fixes as ready-built

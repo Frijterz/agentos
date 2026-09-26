@@ -24,7 +24,8 @@ context="$(
   printf 'You are answering in a small desktop side panel: be concise, use short Markdown.\n'
   printf 'You may edit this repo, run nh os build and commit, following CLAUDE.md. Edits to\n'
   printf 'config/hypr and config/quickshell apply live immediately. You cannot apply system\n'
-  printf 'changes: after a successful build, tell the user to run nh os switch in a terminal.\n'
+  printf 'changes: after a successful nh os build, the panel shows the user an Apply button\n'
+  printf '(package diff + password prompt); tell them to use it. Commit after they applied.\n'
 )"
 
 cd "$repo" || exit 1
@@ -45,4 +46,5 @@ exec claude -p "$prompt" "${resume[@]}" \
   "Bash(hyprctl activewindow:*),Bash(hyprctl activeworkspace:*),Bash(hyprctl clients:*),Bash(hyprctl monitors:*),Bash(hyprctl workspaces:*),Bash(hyprctl binds:*),Bash(hyprctl devices:*),Bash(hyprctl version:*),Bash(hyprctl configerrors:*),Bash(hyprctl reload:*)" \
   "Bash(systemctl status:*),Bash(systemctl --user status:*),Bash(journalctl:*),Bash(nixos-version:*)" \
   --disallowedTools \
-  "Bash(sudo:*),Bash(nh os switch:*),Bash(nh os boot:*),Bash(nixos-rebuild:*),Bash(git push:*),Bash(hyprctl dispatch:*),Bash(hyprctl keyword:*)"
+  "Bash(sudo:*),Bash(nh os switch:*),Bash(nh os boot:*),Bash(nixos-rebuild:*),Bash(git push:*),Bash(hyprctl dispatch:*),Bash(hyprctl keyword:*)" \
+  "Bash(systemctl start:*),Bash(systemctl restart:*),Bash(systemctl stop:*),Bash(run0:*),Bash(pkexec:*),Bash(agentos-switch:*)"

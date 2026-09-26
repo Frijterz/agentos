@@ -29,7 +29,9 @@ PanelWindow {
 
     WlrLayershell.layer: WlrLayer.Top
     WlrLayershell.namespace: "agentos-claude"
-    WlrLayershell.keyboardFocus: ShellState.claudeOpen ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+    // OnDemand, not Exclusive: other windows (and the polkit password dialog) can still
+    // take focus. While a switch waits for the password, let go entirely.
+    WlrLayershell.keyboardFocus: ShellState.claudeOpen && !switchProc.running ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
 
     property bool busy: false
     // Claude Code session of this conversation; follow-ups resume it (memory).
@@ -126,6 +128,117 @@ PanelWindow {
         ShellState.claudeOpen = true;
     }
 
+    // ── Apply cards (agentos-pending → Apply → agentos-switch@<hash>, your password) ──
+    // Hashes already offered, so a dismissed build isn't offered again.
+    property var offered: ({})
+
+    function checkPending() {
+        if (!pendingProc.running)
+            pendingProc.running = true;
+    }
+
+    function offerBuild(json) {
+        let b;
+        try {
+            b = JSON.parse(json);
+        } catch (e) {
+            return;
+        }
+        if (offered[b.hash])
+            return;
+        offered[b.hash] = true;
+        let text = b.diff;
+        if (b.changes)
+            text += "\n\nUncommitted:\n" + b.changes;
+        if (b.unpushed)
+            text += "\n\nNot pushed:\n" + b.unpushed;
+        add("apply", text, b.hash, "waiting");
+    }
+
+    function startSwitch(rid, instance, nextState) {
+        setCardState(rid, "applying");
+        switchProc.rid = rid;
+        switchProc.nextState = nextState;
+        switchProc.command = ["systemctl", "start", "agentos-switch@" + instance + ".service"];
+        switchProc.running = true;
+    }
+
+    function cardAction(rid, action) {
+        if (action === "allow" || action === "deny")
+            answer(rid, action);
+        else if (action === "apply")
+            startSwitch(rid, rid, "applied");
+        else if (action === "undo")
+            startSwitch(rid, "rollback", "rolledback");
+        else if (action === "dismiss")
+            setCardState(rid, "dismissed");
+    }
+
+    function cardTitle(who, state) {
+        if (who === "approve")
+            return state === "waiting" ? "Claude asks permission to:" : state === "allowed" ? "✓ Allowed" : state === "denied" ? "✕ Denied" : "Expired (no answer in time)";
+        return {
+            waiting: "A new system build is ready to apply:",
+            applying: "Applying… (enter your password when asked)",
+            applied: "✓ Applied. Ask Claude to commit if it hasn't.",
+            rolledback: "↶ Rolled back to the previous generation",
+            failed: "✕ Not applied (see the note below)",
+            dismissed: "Dismissed"
+        }[state] ?? state;
+    }
+
+    function cardButtons(who, state) {
+        if (who === "approve" && state === "waiting")
+            return [{ label: "Deny", action: "deny" }, { label: "Allow once", action: "allow", primary: true }];
+        if (who === "apply" && state === "waiting")
+            return [{ label: "Dismiss", action: "dismiss" }, { label: "Apply", action: "apply", primary: true }];
+        if (who === "apply" && state === "applied")
+            return [{ label: "Undo (roll back)", action: "undo" }];
+        return [];
+    }
+
+    Process {
+        id: pendingProc
+        command: ["agentos-pending"]
+        stdout: StdioCollector {
+            onStreamFinished: if (text.trim()) root.offerBuild(text.trim())
+        }
+    }
+
+    // `systemctl start` waits for the oneshot switch and asks polkit for your password.
+    Process {
+        id: switchProc
+
+        property string rid
+        property string nextState
+
+        stderr: StdioCollector {
+            id: switchErr
+        }
+        onExited: code => {
+            if (code === 0) {
+                root.setCardState(rid, nextState);
+                // A rolled-back build can be offered (and applied) again.
+                if (nextState === "rolledback") {
+                    delete root.offered[rid];
+                    root.checkPending();
+                }
+            } else {
+                root.setCardState(rid, "failed");
+                root.add("note", switchErr.text.trim() || "systemctl exited with code " + code);
+                journalProc.command = ["journalctl", "-u", "agentos-switch@*", "-n", "12", "--no-pager", "-o", "cat"];
+                journalProc.running = true;
+            }
+        }
+    }
+
+    Process {
+        id: journalProc
+        stdout: StdioCollector {
+            onStreamFinished: if (text.trim()) root.add("note", text.trim())
+        }
+    }
+
     function answer(rid, verdict) {
         const conn = pending[rid];
         delete pending[rid];
@@ -196,14 +309,17 @@ PanelWindow {
                 root.add("note", "agentos-ask exited with code " + code + "; see journalctl --user -u quickshell");
             root.busy = false;
             input.forceActiveFocus();
+            root.checkPending(); // Claude may have just built something
         }
     }
 
     Connections {
         target: ShellState
         function onClaudeOpenChanged() {
-            if (ShellState.claudeOpen)
+            if (ShellState.claudeOpen) {
                 input.forceActiveFocus();
+                root.checkPending(); // e.g. built with nh os build in a terminal
+            }
         }
     }
 
@@ -301,13 +417,13 @@ PanelWindow {
                     required property string rid
                     required property string state
                     readonly property bool line: who === "tool" || who === "note"
-                    readonly property bool card: who === "approve"
+                    readonly property bool card: who === "approve" || who === "apply"
 
                     width: ListView.view.width
                     height: card ? cardCol.implicitHeight + 24 : txt.implicitHeight + (line ? 4 : 20)
                     radius: 14
                     color: line ? "transparent" : card ? Theme.alpha(Theme.accent2, 0.1) : who === "you" ? Theme.alpha(Theme.accent, 0.14) : Theme.alpha(Theme.fg, 0.05)
-                    border.width: card && state === "waiting" ? 1 : 0
+                    border.width: card && (state === "waiting" || state === "applying") ? 1 : 0
                     border.color: Theme.alpha(Theme.accent2, 0.6)
 
                     Column {
@@ -321,8 +437,10 @@ PanelWindow {
                         spacing: 10
 
                         Text {
-                            text: entry.state === "waiting" ? "Claude asks permission to:" : entry.state === "allowed" ? "✓ Allowed" : entry.state === "denied" ? "✕ Denied" : "Expired (no answer in time)"
-                            color: entry.state === "denied" ? Theme.warn : Theme.alpha(Theme.fg, 0.7)
+                            width: parent.width
+                            wrapMode: Text.Wrap
+                            text: root.cardTitle(entry.who, entry.state)
+                            color: entry.state === "denied" || entry.state === "failed" ? Theme.warn : Theme.alpha(Theme.fg, 0.7)
                             font.family: Theme.fontSans
                             font.pixelSize: 12
                         }
@@ -332,27 +450,23 @@ PanelWindow {
                             text: entry.body
                             textFormat: Text.PlainText
                             wrapMode: Text.WrapAnywhere
-                            maximumLineCount: 14
+                            maximumLineCount: entry.who === "apply" ? 30 : 14
                             elide: Text.ElideRight
                             color: Theme.fg
-                            opacity: entry.state === "waiting" ? 1 : 0.55
+                            opacity: entry.state === "waiting" || entry.state === "applying" ? 1 : 0.55
                             font.family: Theme.fontMono
                             font.pixelSize: 12
                         }
 
                         Row {
-                            visible: entry.state === "waiting"
                             spacing: 8
 
                             Repeater {
-                                model: [
-                                    { label: "Deny", verdict: "deny" },
-                                    { label: "Allow once", verdict: "allow" }
-                                ]
+                                model: root.cardButtons(entry.who, entry.state)
 
                                 delegate: Rectangle {
                                     required property var modelData
-                                    readonly property bool allow: modelData.verdict === "allow"
+                                    readonly property bool allow: modelData.primary === true
 
                                     width: btnText.implicitWidth + 28
                                     height: 30
@@ -375,7 +489,7 @@ PanelWindow {
                                         anchors.fill: parent
                                         hoverEnabled: true
                                         cursorShape: Qt.PointingHandCursor
-                                        onClicked: root.answer(entry.rid, modelData.verdict)
+                                        onClicked: root.cardAction(entry.rid, modelData.action)
                                     }
                                 }
                             }
@@ -393,7 +507,7 @@ PanelWindow {
                         text: who === "tool" ? "⚙ " + body : who === "note" ? "⚠ " + body : body
                         textFormat: who === "claude" ? Text.MarkdownText : Text.PlainText
                         wrapMode: line ? Text.WrapAnywhere : Text.Wrap
-                        maximumLineCount: line ? 3 : 100000
+                        maximumLineCount: who === "note" ? 14 : line ? 3 : 100000
                         elide: Text.ElideRight
                         color: who === "note" ? Theme.warn : line ? Theme.alpha(Theme.fg, 0.55) : Theme.fg
                         font.family: line ? Theme.fontMono : Theme.fontSans
