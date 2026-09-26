@@ -1,5 +1,5 @@
-# The Claude layer. Phase 1 (this file): Claude can read and explain, and propose
-# changes as edits to this repo. Applying them is always your `nh os switch`.
+# The Claude layer. Phase 1 (this file): Claude can read, explain, edit this repo and
+# build. Applying changes is always your `nh os switch`.
 # See agent/README.md for the later phases.
 { pkgs, vars, ... }:
 let

@@ -7,7 +7,8 @@ directly. It changes this repo, and a human-approved switch applies it.**
 ## Phases
 
 ### Phase 1: ask & propose (now)
-- `agentos-ask` (Super+A panel): headless Claude Code in `~/agentos`, read-only tools.
+- `agentos-ask` (Super+A panel): headless Claude Code in `~/agentos`. It may edit the
+  repo, `nh os build` and commit; no sudo, switch or push (see agent/agentos-ask.sh).
 - `claude` in a terminal in `~/agentos`: full pair-programming on the OS. Claude edits
   files and runs `nh os build`; **you** run `nh os switch`.
 - Live files (`config/hypr`, `config/quickshell`) apply on save without a rebuild,

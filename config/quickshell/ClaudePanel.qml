@@ -6,8 +6,8 @@ import Quickshell.Io
 import Quickshell.Wayland
 
 // Slide-in Claude panel (Super+A or the ✦ button, Esc to close).
-// Phase 1: read-only. Questions go to `agentos-ask`, which runs Claude Code
-// headless inside the agentos repo with read-only tools.
+// Phase 1: questions go to `agentos-ask`, which runs Claude Code headless inside
+// the agentos repo; it may edit and build there, never switch.
 PanelWindow {
     id: root
 
