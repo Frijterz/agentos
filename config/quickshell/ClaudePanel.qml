@@ -152,22 +152,31 @@ PanelWindow {
             pendingProc.running = true;
     }
 
-    function offerBuild(json) {
-        let b;
-        try {
-            b = JSON.parse(json);
-        } catch (e) {
-            return;
+    // One JSON object per line from agentos-pending: kind "build" or "update".
+    function offerBuilds(lines) {
+        for (const line of lines.split("\n")) {
+            let b;
+            try {
+                b = JSON.parse(line);
+            } catch (e) {
+                continue;
+            }
+            const key = b.hash + (b.stale ? "-stale" : "");
+            if (offered[key])
+                continue;
+            offered[key] = true;
+            if (b.kind === "update") {
+                const text = (b.summary ? b.summary + "\n\n" : "") + b.diff;
+                add("update", text, b.hash, b.stale ? "stale" : "waiting");
+            } else {
+                let text = b.diff;
+                if (b.changes)
+                    text += "\n\nUncommitted:\n" + b.changes;
+                if (b.unpushed)
+                    text += "\n\nNot pushed:\n" + b.unpushed;
+                add("apply", text, b.hash, "waiting");
+            }
         }
-        if (offered[b.hash])
-            return;
-        offered[b.hash] = true;
-        let text = b.diff;
-        if (b.changes)
-            text += "\n\nUncommitted:\n" + b.changes;
-        if (b.unpushed)
-            text += "\n\nNot pushed:\n" + b.unpushed;
-        add("apply", text, b.hash, "waiting");
     }
 
     function startSwitch(rid, instance, nextState) {
@@ -187,11 +196,44 @@ PanelWindow {
             startSwitch(rid, "rollback", "rolledback");
         else if (action === "dismiss")
             setCardState(rid, "dismissed");
+        else if (action === "rebuild") {
+            setCardState(rid, "rebuilding");
+            rebuildProc.running = true;
+        }
+    }
+
+    // Stale update: rebuild it on top of the current repo (agentos-update notifies when done).
+    Process {
+        id: rebuildProc
+        command: ["systemctl", "--user", "start", "--no-block", "agentos-update.service"]
+    }
+
+    // After an update is applied, commit its flake.lock into the repo.
+    Process {
+        id: adoptProc
+        stdout: StdioCollector {
+            onStreamFinished: if (text.trim()) root.add("tool", text.trim())
+        }
+        stderr: StdioCollector {
+            onStreamFinished: if (text.trim()) root.add("note", text.trim())
+        }
+        command: ["agentos-update", "adopt"]
     }
 
     function cardTitle(who, state) {
         if (who === "approve")
             return state === "waiting" ? "Claude asks permission to:" : state === "allowed" ? "✓ Allowed" : state === "denied" ? "✕ Denied" : "Expired (no answer in time)";
+        if (who === "update")
+            return {
+                waiting: "A weekly system update is ready:",
+                stale: "The prepared update is outdated (the repo changed since). Rebuild it?",
+                rebuilding: "Rebuilding the update in the background; you'll get a notification.",
+                applying: "Applying… (enter your password when asked)",
+                applied: "✓ Update applied; flake.lock committed (not pushed).",
+                rolledback: "↶ Rolled back to the previous generation",
+                failed: "✕ Not applied (see the note below)",
+                dismissed: "Dismissed"
+            }[state] ?? state;
         return {
             waiting: "A new system build is ready to apply:",
             applying: "Applying… (enter your password when asked)",
@@ -205,9 +247,11 @@ PanelWindow {
     function cardButtons(who, state) {
         if (who === "approve" && state === "waiting")
             return [{ label: "Deny", action: "deny" }, { label: "Allow once", action: "allow", primary: true }];
-        if (who === "apply" && state === "waiting")
+        if ((who === "apply" || who === "update") && state === "waiting")
             return [{ label: "Dismiss", action: "dismiss" }, { label: "Apply", action: "apply", primary: true }];
-        if (who === "apply" && state === "applied")
+        if (who === "update" && state === "stale")
+            return [{ label: "Dismiss", action: "dismiss" }, { label: "Rebuild update", action: "rebuild", primary: true }];
+        if ((who === "apply" || who === "update") && state === "applied")
             return [{ label: "Undo (roll back)", action: "undo" }];
         return [];
     }
@@ -216,7 +260,7 @@ PanelWindow {
         id: pendingProc
         command: ["agentos-pending"]
         stdout: StdioCollector {
-            onStreamFinished: if (text.trim()) root.offerBuild(text.trim())
+            onStreamFinished: if (text.trim()) root.offerBuilds(text.trim())
         }
     }
 
@@ -233,6 +277,8 @@ PanelWindow {
         onExited: code => {
             if (code === 0) {
                 root.setCardState(rid, nextState);
+                if (nextState === "applied" && root.cardWho(rid) === "update")
+                    adoptProc.running = true;
                 // A rolled-back build can be offered (and applied) again.
                 if (nextState === "rolledback") {
                     delete root.offered[rid];
@@ -263,6 +309,13 @@ PanelWindow {
             conn.flush();
             conn.connected = false; // lets the hook's socat exit
         }
+    }
+
+    function cardWho(rid) {
+        for (let i = 0; i < messages.count; i++)
+            if (messages.get(i).rid === rid)
+                return messages.get(i).who;
+        return "";
     }
 
     function setCardState(rid, state) {
@@ -432,7 +485,7 @@ PanelWindow {
                     required property string rid
                     required property string state
                     readonly property bool line: who === "tool" || who === "note"
-                    readonly property bool card: who === "approve" || who === "apply"
+                    readonly property bool card: who === "approve" || who === "apply" || who === "update"
 
                     width: ListView.view.width
                     height: card ? cardCol.implicitHeight + 24 : txt.implicitHeight + (line ? 4 : 20)
@@ -465,7 +518,7 @@ PanelWindow {
                             text: entry.body
                             textFormat: Text.PlainText
                             wrapMode: Text.WrapAnywhere
-                            maximumLineCount: entry.who === "apply" ? 30 : 14
+                            maximumLineCount: entry.who === "approve" ? 14 : 30
                             elide: Text.ElideRight
                             color: Theme.fg
                             opacity: entry.state === "waiting" || entry.state === "applying" ? 1 : 0.55

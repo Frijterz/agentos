@@ -1,8 +1,29 @@
 # The Claude layer: Claude can read, explain, edit this repo and build. Applying a
 # build takes your password: `nh os switch`, or Apply in the panel (agentos-switch@).
 # See agent/README.md for the phases.
-{ pkgs, vars, ... }:
+{
+  config,
+  pkgs,
+  vars,
+  ...
+}:
 let
+  # Weekly update prepared in a separate worktree, offered as a card in the panel.
+  agentos-update = pkgs.writeShellApplication {
+    name = "agentos-update";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.findutils
+      pkgs.git
+      pkgs.jq
+      pkgs.nvd
+      pkgs.libnotify
+      pkgs.claude-code
+      config.nix.package
+    ];
+    text = builtins.readFile ../../agent/agentos-update.sh;
+  };
+
   # Root side of the panel's Apply button; only reachable as agentos-switch@<hash>.
   agentos-switch = pkgs.writeShellApplication {
     name = "agentos-switch";
@@ -74,7 +95,30 @@ in
     agentos-ask
     agentos-pending
     agentos-screenshot
+    agentos-update
   ];
+
+  # Daily check, weekly update: only on mains power, at low priority. The script
+  # skips unless a week has passed or the prepared update is outdated.
+  systemd.user.services.agentos-update = {
+    description = "Prepare the weekly agentos system update";
+    environment.AGENTOS_HOST = vars.host;
+    unitConfig.ConditionACPower = true;
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "${agentos-update}/bin/agentos-update run";
+      Nice = 15;
+      IOSchedulingClass = "idle";
+    };
+  };
+  systemd.user.timers.agentos-update = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnCalendar = "daily";
+      Persistent = true;
+      RandomizedDelaySec = "1h";
+    };
+  };
 
   # Apply from the panel: `systemctl start agentos-switch@<hash>` (or @rollback).
   # The script validates its argument; polkit below asks your password every time.
