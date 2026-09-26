@@ -4,6 +4,10 @@
 #   Display  Samsung 1920×1200 OLED, 60 Hz, HDR metadata (~600 nits)
 #   Wi-Fi    MediaTek MT7922 (mt7921e): works
 #   Audio    ALC294 + 2× Cirrus CS35L41 amps: UM3406KA tuning firmware loads
+#   Mic      digital mic on the ALC294 (pin 0x12), not on the AMD ACP. Keep the input
+#            volume ≤ ~30%: above that PipeWire adds "Mic Boost" and it clips into noise
+#            (WirePlumber remembers the level). The acp70 "No matching ASoC machine
+#            driver" boot warning is expected and harmless.
 #   NPU      amdxdna driver binds
 #   Battery  BAT0, charge_control_end_threshold supported
 #   Sleep    s2idle only (normal for this platform)

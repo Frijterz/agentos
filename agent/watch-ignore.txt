@@ -6,3 +6,6 @@
 Ignoring duplicate name '.*' in service file
 # A sudo password prompt that had no terminal (e.g. `! nh os switch` in Claude Code).
 pam_unix\(sudo:auth\): (conversation failed|auth could not identify password)
+# The AMD ACP finds no machine driver: the BIOS reports no ACP mics (_WOV = 0, no PDMC
+# properties). Correct: the built-in mic is on the Realtek ALC294 (pin 0x12). Harmless.
+acp_asoc_acp70.*No matching ASoC machine driver found
