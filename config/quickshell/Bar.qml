@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Hyprland
+import Quickshell.Io
 import Quickshell.Services.UPower
 import Quickshell.Wayland
 
@@ -103,6 +104,56 @@ PanelWindow {
             anchors.rightMargin: 7
             anchors.verticalCenter: parent.verticalCenter
             spacing: 14
+
+            // Mode chip: click (or Super+M) for the next mode. Quiet when normal.
+            Rectangle {
+                readonly property var modes: ({
+                        normal: { icon: "󰾅", label: "" },
+                        battery: { icon: "󰂃", label: "Battery saver" },
+                        presentation: { icon: "󰐯", label: "Presentation" },
+                        focus: { icon: "󰂛", label: "Focus" }
+                    })
+                readonly property var m: modes[ShellState.mode] ?? modes.normal
+                readonly property bool active: ShellState.mode !== "normal"
+
+                anchors.verticalCenter: parent.verticalCenter
+                width: modeRow.implicitWidth + 16
+                height: 26
+                radius: 13
+                color: active ? Theme.alpha(Theme.accent, 0.18) : modeHover.hovered ? Theme.alpha(Theme.fg, 0.08) : "transparent"
+
+                Row {
+                    id: modeRow
+                    anchors.centerIn: parent
+                    spacing: 6
+
+                    Text {
+                        text: parent.parent.m.icon
+                        color: parent.parent.active ? Theme.accent : Theme.alpha(Theme.fg, 0.5)
+                        font.family: Theme.fontMono
+                        font.pixelSize: 14
+                    }
+                    Text {
+                        visible: text !== ""
+                        text: parent.parent.m.label
+                        color: Theme.fg
+                        font.family: Theme.fontSans
+                        font.pixelSize: 12
+                    }
+                }
+
+                HoverHandler {
+                    id: modeHover
+                    cursorShape: Qt.PointingHandCursor
+                }
+                TapHandler {
+                    onTapped: if (!modeProc.running) modeProc.running = true
+                }
+                Process {
+                    id: modeProc
+                    command: ["agentos-mode", "next"]
+                }
+            }
 
             Text {
                 readonly property var dev: UPower.displayDevice

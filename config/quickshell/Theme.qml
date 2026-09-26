@@ -28,8 +28,8 @@ Singleton {
     readonly property int medium: 280
     readonly property int slow: 520
 
-    // Eye-candy switches (a future battery profile will flip these).
-    property bool animatedBackground: true
+    // Eye-candy switches: battery mode (agentos-mode) turns them off.
+    readonly property bool animatedBackground: ShellState.mode !== "battery"
 
     function alpha(c, a) {
         return Qt.rgba(c.r, c.g, c.b, a);

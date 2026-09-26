@@ -8,6 +8,19 @@
   ...
 }:
 let
+  # Desktop modes (normal / battery / presentation / focus): bar chip, Super+M, Claude.
+  agentos-mode = pkgs.writeShellApplication {
+    name = "agentos-mode";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.power-profiles-daemon
+      pkgs.hyprland
+      pkgs.mako
+      config.systemd.package
+    ];
+    text = builtins.readFile ../../agent/agentos-mode.sh;
+  };
+
   # Hourly problem check (failed units, journal errors, battery, disk) for the panel.
   agentos-watch = pkgs.writeShellApplication {
     name = "agentos-watch";
@@ -112,7 +125,20 @@ in
     agentos-screenshot
     agentos-update
     agentos-watch
+    agentos-mode
   ];
+
+  # Modes last for one session: start every login in normal mode, so a forgotten
+  # presentation mode can't keep the screen from locking.
+  systemd.user.services.agentos-mode-reset = {
+    description = "Start the session in normal mode";
+    wantedBy = [ "graphical-session.target" ];
+    after = [ "graphical-session.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "${agentos-mode}/bin/agentos-mode normal";
+    };
+  };
 
   # Look for problems 10 minutes after login, then hourly. Cheap: it only reads the
   # journal since the last check. It reports; fixing happens with you in the panel.

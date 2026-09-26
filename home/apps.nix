@@ -48,6 +48,8 @@
       border-radius = 14;
       padding = "12";
       margin = "12";
+      # agentos-mode presentation/focus: hide notifications (still in `makoctl history`).
+      "mode=do-not-disturb".invisible = 1;
     };
   };
 
