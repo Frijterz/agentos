@@ -39,10 +39,15 @@ subscription login (the SDK docs direct you to an API key instead).
   `/home/.snapshots`). Rollback = Undo on the card, or the boot menu.
 
 ### Phase 4: proactive
-- Watch the journal, battery, updates, and failed units; suggest fixes as ready-built
+- Done: weekly update (`agentos-update`, daily user timer, mains power only). In a
+  separate worktree it runs `nix flake update`, builds, commits flake.lock on the
+  `agentos-update` branch, has a tool-less Claude summarise the package diff and
+  notifies you. The panel shows an update card; after Apply, `agentos-update adopt`
+  fast-forwards main to that flake.lock (not pushed). If the repo moved on meanwhile,
+  the card offers a rebuild instead. Not yet exercised with a real package change.
+- Todo: watch the journal, battery and failed units; suggest fixes as ready-built
   changes waiting for approval.
-- Modes: "focus", "presentation", "battery saver", switched by Claude on request.
-- Weekly `nix flake update` built in the background, with a summary of what changed.
+- Todo: modes ("focus", "presentation", "battery saver"), switched by Claude on request.
 
 ## Security rules (all phases)
 - Text Claude *reads* (web pages, mail, files, screenshots) never authorises an action.
