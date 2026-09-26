@@ -45,8 +45,11 @@ subscription login (the SDK docs direct you to an API key instead).
   notifies you. The panel shows an update card; after Apply, `agentos-update adopt`
   fast-forwards main to that flake.lock (not pushed). If the repo moved on meanwhile,
   the card offers a rebuild instead. Not yet exercised with a real package change.
-- Todo: watch the journal, battery and failed units; suggest fixes as ready-built
-  changes waiting for approval.
+- Done: `agentos-watch` (hourly user timer) reports failed units, new journal errors
+  (minus `agent/watch-ignore.txt`), battery health / charge limit and disk space as a
+  health card + notification. "Ask Claude" hands the findings to the panel's Claude
+  with you present; it never fixes anything unattended. Review its conclusions: on
+  the first run it wrongly called the missing ACP70 mic driver harmless.
 - Todo: modes ("focus", "presentation", "battery saver"), switched by Claude on request.
 
 ## Security rules (all phases)
