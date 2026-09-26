@@ -43,10 +43,25 @@ PanelWindow {
         messages.append({ who, body, rid: rid ?? "", state: state ?? "" });
     }
 
+    // Path of a screenshot to send with the next question (camera button).
+    property string attachedShot: ""
+
+    Process {
+        id: shotProc
+        command: ["agentos-screenshot", "window"]
+        stdout: StdioCollector {
+            onStreamFinished: root.attachedShot = text.trim()
+        }
+    }
+
     function send(prompt) {
         if (!prompt.trim() || busy)
             return;
-        add("you", prompt);
+        add("you", (attachedShot ? "󰄀 " : "") + prompt);
+        if (attachedShot) {
+            prompt += "\n\n[The user attached a screenshot of their active window: " + attachedShot + " (Read it.)]";
+            attachedShot = "";
+        }
         busy = true;
         ask.command = sessionId ? ["agentos-ask", "--resume", sessionId, prompt] : ["agentos-ask", prompt];
         ask.running = true;
@@ -527,6 +542,48 @@ PanelWindow {
                 }
             }
 
+            // Attached screenshot chip (click to remove).
+            Text {
+                visible: root.attachedShot !== ""
+                text: "󰄀  Screenshot of the active window attached  ·  remove"
+                color: Theme.alpha(Theme.fg, 0.6)
+                font.family: Theme.fontMono
+                font.pixelSize: 11
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.attachedShot = ""
+                }
+            }
+
+            RowLayout {
+                spacing: 8
+
+            // Camera: you decide when Claude sees your screen.
+            Rectangle {
+                Layout.preferredWidth: 40
+                Layout.preferredHeight: 40
+                radius: 12
+                color: camArea.containsMouse ? Theme.alpha(Theme.fg, 0.12) : Theme.alpha(Theme.fg, 0.06)
+                opacity: root.busy || shotProc.running ? 0.4 : 1
+
+                Text {
+                    anchors.centerIn: parent
+                    text: "󰄀"
+                    color: root.attachedShot ? Theme.accent : Theme.fg
+                    font.family: Theme.fontMono
+                    font.pixelSize: 17
+                }
+                MouseArea {
+                    id: camArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    enabled: !root.busy && !shotProc.running
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: shotProc.running = true
+                }
+            }
+
             TextField {
                 id: input
 
@@ -557,6 +614,7 @@ PanelWindow {
                     text = "";
                 }
                 Keys.onEscapePressed: ShellState.claudeOpen = false
+            }
             }
         }
     }

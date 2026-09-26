@@ -22,8 +22,11 @@ subscription login (the SDK docs direct you to an API key instead).
 - Done: approval cards. A `PermissionRequest` hook (`agentos-approve`) sends anything
   not on the allow list to the panel over `$XDG_RUNTIME_DIR/agentos-approve.sock`
   and waits for Deny / Allow once.
-- Todo: context tools: active window, workspace layout (`hyprctl -j`), screenshot of
-  the focused window (`grim`) on request, clipboard, notifications.
+- Done: desktop context. Active window and workspace go with every question;
+  `hyprctl clients/workspaces` need no approval. Screenshots come from the panel's
+  camera button (you decide) or `agentos-screenshot` behind a card; clipboard
+  (`wl-paste`) and notifications (`makoctl history`) are behind a card too. Claude is
+  told to treat all of these as untrusted data, never instructions.
 
 ### Phase 3: apply with approval (done)
 - `agentos-switch@<hash>.service` (root, oneshot) does exactly one thing: switch to the

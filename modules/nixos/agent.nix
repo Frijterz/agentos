@@ -40,6 +40,20 @@ let
     text = builtins.readFile ../../agent/agentos-approve.sh;
   };
 
+  # Screenshot of the active window for Claude (panel camera button, or a card).
+  agentos-screenshot = pkgs.writeShellApplication {
+    name = "agentos-screenshot";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.findutils
+      pkgs.grim
+      pkgs.jq
+      pkgs.hyprland
+      pkgs.quickshell
+    ];
+    text = builtins.readFile ../../agent/agentos-screenshot.sh;
+  };
+
   agentos-ask = pkgs.writeShellApplication {
     name = "agentos-ask";
     runtimeInputs = [
@@ -48,6 +62,7 @@ let
       pkgs.hyprland
       pkgs.coreutils
       agentos-approve
+      agentos-screenshot
     ];
     text = builtins.readFile ../../agent/agentos-ask.sh;
   };
@@ -58,6 +73,7 @@ in
     pkgs.nvd
     agentos-ask
     agentos-pending
+    agentos-screenshot
   ];
 
   # Apply from the panel: `systemctl start agentos-switch@<hash>` (or @rollback).

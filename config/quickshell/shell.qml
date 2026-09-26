@@ -38,6 +38,7 @@ ShellRoot {
         function toggle(): void { ShellState.claudeOpen = !ShellState.claudeOpen }
         function open(): void { ShellState.claudeOpen = true }
         function close(): void { ShellState.claudeOpen = false }
+        function isOpen(): bool { return ShellState.claudeOpen }
     }
 
     // qs ipc call screensaver start|stop  (hypridle)
