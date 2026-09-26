@@ -3,6 +3,7 @@
 #   kind "build":  ~/agentos/result, from `nh os build` (you or Claude)
 #   kind "update": the weekly update prepared by agentos-update; "stale" when the repo
 #                  has moved on since, so applying it would undo newer changes.
+#   kind "health": problems found by agentos-watch, not yet dismissed.
 # Packaged by modules/nixos/agent.nix.
 
 repo="${AGENTOS_FLAKE:-$HOME/agentos}"
@@ -23,6 +24,13 @@ case "$result" in
       '{kind: "build", path: $path, hash: $hash, diff: $diff, changes: $changes, unpushed: $unpushed}'
     ;;
 esac
+
+health="${XDG_STATE_HOME:-$HOME/.local/state}/agentos/health.json"
+if [ -f "$health" ]; then
+  # Key changes whenever the set of findings does, so the panel shows it afresh.
+  key="$(jq -r '.findings[].id' "$health" | md5sum | cut -c 1-32)"
+  jq -c --arg hash "$key" '{kind: "health", hash: $hash, date, findings}' "$health"
+fi
 
 if [ -f "$info" ]; then
   path="$(jq -r .path "$info")"

@@ -8,6 +8,20 @@
   ...
 }:
 let
+  # Hourly problem check (failed units, journal errors, battery, disk) for the panel.
+  agentos-watch = pkgs.writeShellApplication {
+    name = "agentos-watch";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.gnugrep
+      pkgs.gawk
+      pkgs.jq
+      pkgs.libnotify
+      config.systemd.package
+    ];
+    text = builtins.readFile ../../agent/agentos-watch.sh;
+  };
+
   # Weekly update prepared in a separate worktree, offered as a card in the panel.
   agentos-update = pkgs.writeShellApplication {
     name = "agentos-update";
@@ -34,6 +48,7 @@ let
       pkgs.gawk
       pkgs.nix
       pkgs.btrfs-progs
+      pkgs.snapper
     ];
     text = builtins.readFile ../../agent/agentos-switch.sh;
   };
@@ -96,7 +111,26 @@ in
     agentos-pending
     agentos-screenshot
     agentos-update
+    agentos-watch
   ];
+
+  # Look for problems 10 minutes after login, then hourly. Cheap: it only reads the
+  # journal since the last check. It reports; fixing happens with you in the panel.
+  systemd.user.services.agentos-watch = {
+    description = "Look for problems to show in the Claude panel";
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "${agentos-watch}/bin/agentos-watch check";
+      Nice = 10;
+    };
+  };
+  systemd.user.timers.agentos-watch = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnStartupSec = "10min";
+      OnUnitActiveSec = "1h";
+    };
+  };
 
   # Daily check, weekly update: only on mains power, at low priority. The script
   # skips unless a week has passed or the prepared update is outdated.

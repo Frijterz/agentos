@@ -1,0 +1,8 @@
+# Journal errors agentos-watch should not report: one extended regex per line, matched
+# against "<unit or program><TAB><message>". Read live from the repo, no rebuild needed.
+# Only add noise you understand; the panel's Claude may propose additions.
+
+# dbus finds the same service file twice (NixOS links them from two places). Harmless.
+Ignoring duplicate name '.*' in service file
+# A sudo password prompt that had no terminal (e.g. `! nh os switch` in Claude Code).
+pam_unix\(sudo:auth\): (conversation failed|auth could not identify password)
