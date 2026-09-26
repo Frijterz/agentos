@@ -8,13 +8,16 @@ and why, in plain language, and teach the Nix concept when it first comes up.
 1. Edit files in this repo. Never edit `/etc`, `~/.config` symlinks, or anything in
    `/nix/store`; Home Manager-managed files are read-only symlinks.
 2. Build without privileges: `nh os build`. It shows the package diff. Fix any errors.
-3. Summarise the change and the diff for the user, then ask them to run
-   `nh os switch` (it needs their sudo password). **Never run sudo,
-   `nixos-rebuild switch` or `nh os switch` yourself** unless the user explicitly
-   asks you to in this conversation.
-4. After a successful switch, commit with a clear message (one change per commit).
-5. If something broke: `sudo nixos-rebuild switch --rollback` (user runs it), or pick
-   an older generation in the boot menu.
+3. Summarise the change and the diff for the user, then ask them to apply it: the
+   **Apply** card in the Claude panel (Super+A, shows the package diff, asks their
+   password), or `nh os switch` in a real terminal (`! nh os switch` in Claude Code
+   has no TTY for sudo). **Never run sudo, `nixos-rebuild switch`, `nh os switch` or
+   `systemctl start agentos-switch@…` yourself** unless the user explicitly asks you
+   to in this conversation.
+4. After it's applied, check `readlink /run/current-system` matches `./result`, then
+   commit with a clear message (one change per commit).
+5. If something broke: **Undo** on the panel card, `sudo nixos-rebuild switch
+   --rollback` (user runs it), or pick an older generation in the boot menu.
 
 New files must be `git add`-ed before building: flakes only see tracked files.
 
@@ -23,6 +26,8 @@ New files must be `git add`-ed before building: flakes only see tracked files.
 - `config/quickshell/*.qml`: Quickshell hot-reloads. Check
   `journalctl --user -u quickshell -f` for QML errors.
 Iterate on the look here, with small steps the user can see immediately.
+Don't save `ClaudePanel.qml` while a panel conversation is running: the hot reload
+kills it and any approval card it is waiting on.
 
 ## Layout
 - `flake.nix`: inputs and `vars` (user, host, repo path).
