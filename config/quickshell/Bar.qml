@@ -106,8 +106,8 @@ PanelWindow {
 
             Text {
                 readonly property var dev: UPower.displayDevice
-                // Quickshell reports 0–1; guard in case that ever changes to 0–100.
-                readonly property real pct: dev.percentage <= 1 ? dev.percentage * 100 : dev.percentage
+                // Quickshell reports 0–1 (verified on the UM3406).
+                readonly property real pct: dev.percentage * 100
 
                 visible: dev.isLaptopBattery
                 anchors.verticalCenter: parent.verticalCenter
