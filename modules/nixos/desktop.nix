@@ -1,11 +1,50 @@
 {
   config,
+  lib,
   pkgs,
   vars,
   ...
 }:
 let
   session = "uwsm start hyprland-uwsm.desktop";
+
+  # A Chromium theme (an extension with only a manifest) from the Stylix palette, so the
+  # browser matches the bar and panel and follows theme changes. Loaded with
+  # --load-extension below.
+  colors = config.lib.stylix.colors;
+  rgb =
+    base:
+    map (channel: lib.toInt colors."${base}-rgb-${channel}") [
+      "r"
+      "g"
+      "b"
+    ];
+  chromiumTheme = pkgs.writeTextDir "manifest.json" (
+    builtins.toJSON {
+      manifest_version = 3;
+      name = "agentos (Stylix)";
+      version = "1";
+      theme.colors = {
+        frame = rgb "base00";
+        frame_inactive = rgb "base00";
+        frame_incognito = rgb "base00";
+        frame_incognito_inactive = rgb "base00";
+        toolbar = rgb "base01";
+        toolbar_text = rgb "base05";
+        toolbar_button_icon = rgb "base05";
+        tab_text = rgb "base05";
+        tab_background_text = rgb "base04";
+        tab_background_text_inactive = rgb "base03";
+        bookmark_text = rgb "base05";
+        omnibox_background = rgb "base00";
+        omnibox_text = rgb "base05";
+        ntp_background = rgb "base00";
+        ntp_text = rgb "base05";
+        ntp_link = rgb "base0D";
+        ntp_header = rgb "base01";
+      };
+    }
+  );
 in
 {
   programs.hyprland = {
@@ -51,8 +90,11 @@ in
 
   services.blueman.enable = true;
 
-  # Browser: Chromium (native Wayland via NIXOS_OZONE_WL above). programs.chromium only
-  # manages its policies; Stylix uses them for the theme colour.
-  environment.systemPackages = [ pkgs.chromium ];
-  programs.chromium.enable = true;
+  # Browser: Chromium (native Wayland via NIXOS_OZONE_WL above), themed from Stylix.
+  # Stylix's own Chromium target is off: its BrowserThemeColor policy only tints
+  # Chromium's palette and blocks every theme extension, ours included.
+  environment.systemPackages = [
+    (pkgs.chromium.override { commandLineArgs = [ "--load-extension=${chromiumTheme}" ]; })
+  ];
+  stylix.targets.chromium.enable = false;
 }
