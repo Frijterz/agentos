@@ -3,6 +3,17 @@
 # See agent/README.md for the later phases.
 { pkgs, vars, ... }:
 let
+  # PermissionRequest hook: relays Claude's permission prompts to the panel.
+  agentos-approve = pkgs.writeShellApplication {
+    name = "agentos-approve";
+    runtimeInputs = [
+      pkgs.jq
+      pkgs.socat
+      pkgs.coreutils
+    ];
+    text = builtins.readFile ../../agent/agentos-approve.sh;
+  };
+
   agentos-ask = pkgs.writeShellApplication {
     name = "agentos-ask";
     runtimeInputs = [
@@ -10,6 +21,7 @@ let
       pkgs.jq
       pkgs.hyprland
       pkgs.coreutils
+      agentos-approve
     ];
     text = builtins.readFile ../../agent/agentos-ask.sh;
   };

@@ -3,10 +3,9 @@
 # Packaged by modules/nixos/agent.nix (writeShellApplication adds the shebang and
 # `set -euo pipefail`).
 #
-# Phase 1b: Claude runs inside the agentos repo (so it follows CLAUDE.md) and may edit
-# files there, build, and commit. acceptEdits only covers the repo; edits elsewhere
-# need a permission prompt, which headless mode can't show, so they're refused.
-# Applying (sudo), pushing and arbitrary hyprctl dispatches stay with the user.
+# Claude runs inside the agentos repo (so it follows CLAUDE.md) and may edit files
+# there, build, and commit. Other actions go to agentos-approve, which asks you in the
+# panel. sudo, switch, push and hyprctl dispatch/keyword are denied outright.
 # Note: Claude Code also runs commands it recognises as read-only (uname, grep, ...).
 
 resume=()
@@ -30,12 +29,17 @@ context="$(
 
 cd "$repo" || exit 1
 
+# Anything not allowed below (and not denied) becomes an Approve/Deny card in the panel.
+hooks='{"hooks":{"PermissionRequest":[{"matcher":"*","hooks":[{"type":"command","command":"agentos-approve","timeout":300}]}]}}'
+
+# No bare tool names: "Read" alone would approve reads of any path. Reads and edits
+# inside the repo need no rule (working directory + acceptEdits); elsewhere they ask.
 exec claude -p "$prompt" "${resume[@]}" \
   --output-format stream-json --verbose --include-partial-messages \
   --append-system-prompt "$context" \
+  --settings "$hooks" \
   --permission-mode acceptEdits \
   --allowedTools \
-  "Read,Glob,Grep,Edit,Write" \
   "Bash(nh os build:*),Bash(nix fmt:*),Bash(nix flake check:*)" \
   "Bash(git add:*),Bash(git commit:*),Bash(git log:*),Bash(git diff:*),Bash(git status:*),Bash(git show:*)" \
   "Bash(hyprctl activewindow:*),Bash(hyprctl activeworkspace:*),Bash(hyprctl clients:*),Bash(hyprctl monitors:*),Bash(hyprctl workspaces:*),Bash(hyprctl binds:*),Bash(hyprctl devices:*),Bash(hyprctl version:*),Bash(hyprctl configerrors:*),Bash(hyprctl reload:*)" \

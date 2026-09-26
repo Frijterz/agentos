@@ -35,10 +35,16 @@ PanelWindow {
     // Claude Code session of this conversation; follow-ups resume it (memory).
     property string sessionId: ""
 
+    // Every entry carries all roles; ListModel wants a consistent shape.
+    // rid/state are only used by approval cards.
+    function add(who, body, rid, state) {
+        messages.append({ who, body, rid: rid ?? "", state: state ?? "" });
+    }
+
     function send(prompt) {
         if (!prompt.trim() || busy)
             return;
-        messages.append({ who: "you", body: prompt });
+        add("you", prompt);
         busy = true;
         ask.command = sessionId ? ["agentos-ask", "--resume", sessionId, prompt] : ["agentos-ask", prompt];
         ask.running = true;
@@ -55,7 +61,7 @@ PanelWindow {
     function appendText(chunk) {
         const i = messages.count - 1;
         if (i < 0 || messages.get(i).who !== "claude")
-            messages.append({ who: "claude", body: chunk });
+            add("claude", chunk);
         else
             messages.setProperty(i, "body", messages.get(i).body + chunk);
     }
@@ -76,12 +82,93 @@ PanelWindow {
         } else if (ev.type === "assistant") {
             for (const block of ev.message.content)
                 if (block.type === "tool_use")
-                    messages.append({ who: "tool", body: toolLabel(block.name, block.input) });
+                    add("tool", toolLabel(block.name, block.input));
         } else if (ev.type === "result") {
+            // Includes deny rules (sudo, switch, push) that never reach a card.
             for (const d of ev.permission_denials ?? [])
-                messages.append({ who: "note", body: "Not allowed: " + toolLabel(d.tool_name, d.tool_input) });
+                add("note", "Not allowed: " + toolLabel(d.tool_name, d.tool_input));
             if (ev.is_error)
-                messages.append({ who: "note", body: "Error: " + (ev.result ?? ev.subtype) });
+                add("note", "Error: " + (ev.result ?? ev.subtype));
+        }
+    }
+
+    // ── Approval cards (agentos-approve hook → socket → here) ──
+    // Open connections waiting for a click, by request id.
+    property var pending: ({})
+    property int nextRid: 0
+
+    // Show what will actually run, not Claude's description of it.
+    function describe(req) {
+        const t = req.tool_name, i = req.tool_input ?? {};
+        if (t === "Bash")
+            return "$ " + i.command;
+        if (t === "Write")
+            return "Write " + i.file_path + "\n" + String(i.content ?? "").slice(0, 400);
+        if (t === "Edit")
+            return "Edit " + i.file_path + "\n− " + String(i.old_string ?? "").slice(0, 200) + "\n+ " + String(i.new_string ?? "").slice(0, 200);
+        if (i.file_path || i.url || i.path)
+            return t + " " + (i.file_path ?? i.url ?? i.path);
+        return t + " " + JSON.stringify(i).slice(0, 400);
+    }
+
+    function request(conn, line) {
+        let req;
+        try {
+            req = JSON.parse(line);
+        } catch (e) {
+            conn.write("deny\n");
+            conn.flush();
+            return;
+        }
+        const rid = String(nextRid++);
+        pending[rid] = conn;
+        add("approve", describe(req), rid, "waiting");
+        ShellState.claudeOpen = true;
+    }
+
+    function answer(rid, verdict) {
+        const conn = pending[rid];
+        delete pending[rid];
+        setCardState(rid, verdict === "allow" ? "allowed" : "denied");
+        if (conn && conn.connected) {
+            conn.write(verdict + "\n");
+            conn.flush();
+            conn.connected = false; // lets the hook's socat exit
+        }
+    }
+
+    function setCardState(rid, state) {
+        for (let i = 0; i < messages.count; i++)
+            if (messages.get(i).rid === rid)
+                messages.setProperty(i, "state", state);
+    }
+
+    // The hook gave up (timeout) or Claude was stopped: retire the card.
+    function dropped(conn) {
+        for (const rid in pending)
+            if (pending[rid] === conn) {
+                delete pending[rid];
+                setCardState(rid, "expired");
+            }
+    }
+
+    // Start late: on a hot reload the old instance removes the socket file as it exits.
+    Timer {
+        running: true
+        interval: 1500
+        onTriggered: approveServer.active = true
+    }
+
+    SocketServer {
+        id: approveServer
+        active: false
+        path: Quickshell.env("XDG_RUNTIME_DIR") + "/agentos-approve.sock"
+        handler: Socket {
+            id: conn
+            parser: SplitParser {
+                onRead: line => root.request(conn, line)
+            }
+            onConnectedChanged: if (!connected) root.dropped(conn)
         }
     }
 
@@ -106,7 +193,7 @@ PanelWindow {
         }
         onExited: (code, status) => {
             if (code !== 0)
-                messages.append({ who: "note", body: "agentos-ask exited with code " + code + "; see journalctl --user -u quickshell" });
+                root.add("note", "agentos-ask exited with code " + code + "; see journalctl --user -u quickshell");
             root.busy = false;
             input.forceActiveFocus();
         }
@@ -204,18 +291,99 @@ PanelWindow {
                 model: messages
                 onContentHeightChanged: Qt.callLater(positionViewAtEnd)
 
-                // who: "you" | "claude" (bubbles) or "tool" | "note" (small status lines).
+                // who: "you" | "claude" (bubbles), "tool" | "note" (small status lines),
+                // or "approve" (a permission card waiting for your click).
                 delegate: Rectangle {
+                    id: entry
+
                     required property string who
                     required property string body
+                    required property string rid
+                    required property string state
                     readonly property bool line: who === "tool" || who === "note"
+                    readonly property bool card: who === "approve"
 
                     width: ListView.view.width
-                    height: txt.implicitHeight + (line ? 4 : 20)
+                    height: card ? cardCol.implicitHeight + 24 : txt.implicitHeight + (line ? 4 : 20)
                     radius: 14
-                    color: line ? "transparent" : who === "you" ? Theme.alpha(Theme.accent, 0.14) : Theme.alpha(Theme.fg, 0.05)
+                    color: line ? "transparent" : card ? Theme.alpha(Theme.accent2, 0.1) : who === "you" ? Theme.alpha(Theme.accent, 0.14) : Theme.alpha(Theme.fg, 0.05)
+                    border.width: card && state === "waiting" ? 1 : 0
+                    border.color: Theme.alpha(Theme.accent2, 0.6)
+
+                    Column {
+                        id: cardCol
+
+                        visible: entry.card
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.margins: 12
+                        spacing: 10
+
+                        Text {
+                            text: entry.state === "waiting" ? "Claude asks permission to:" : entry.state === "allowed" ? "✓ Allowed" : entry.state === "denied" ? "✕ Denied" : "Expired (no answer in time)"
+                            color: entry.state === "denied" ? Theme.warn : Theme.alpha(Theme.fg, 0.7)
+                            font.family: Theme.fontSans
+                            font.pixelSize: 12
+                        }
+
+                        Text {
+                            width: parent.width
+                            text: entry.body
+                            textFormat: Text.PlainText
+                            wrapMode: Text.WrapAnywhere
+                            maximumLineCount: 14
+                            elide: Text.ElideRight
+                            color: Theme.fg
+                            opacity: entry.state === "waiting" ? 1 : 0.55
+                            font.family: Theme.fontMono
+                            font.pixelSize: 12
+                        }
+
+                        Row {
+                            visible: entry.state === "waiting"
+                            spacing: 8
+
+                            Repeater {
+                                model: [
+                                    { label: "Deny", verdict: "deny" },
+                                    { label: "Allow once", verdict: "allow" }
+                                ]
+
+                                delegate: Rectangle {
+                                    required property var modelData
+                                    readonly property bool allow: modelData.verdict === "allow"
+
+                                    width: btnText.implicitWidth + 28
+                                    height: 30
+                                    radius: 9
+                                    color: allow ? (btnArea.containsMouse ? Theme.accent : Theme.alpha(Theme.accent, 0.8)) : (btnArea.containsMouse ? Theme.alpha(Theme.fg, 0.16) : Theme.alpha(Theme.fg, 0.08))
+
+                                    Text {
+                                        id: btnText
+                                        anchors.centerIn: parent
+                                        text: modelData.label
+                                        color: allow ? Theme.bg : Theme.fg
+                                        font.family: Theme.fontSans
+                                        font.pixelSize: 13
+                                        font.weight: allow ? Font.DemiBold : Font.Normal
+                                    }
+
+                                    // Mouse only: a stray Enter while typing can't approve anything.
+                                    MouseArea {
+                                        id: btnArea
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: root.answer(entry.rid, modelData.verdict)
+                                    }
+                                }
+                            }
+                        }
+                    }
 
                     Text {
+                        visible: !entry.card
                         id: txt
                         anchors.left: parent.left
                         anchors.right: parent.right
