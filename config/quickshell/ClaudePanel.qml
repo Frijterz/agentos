@@ -441,6 +441,10 @@ PanelWindow {
         // Tells ShellState that systemd's password prompt belongs in our card.
         onRunningChanged: ShellState.applyRunning = running
 
+        // systemctl waits only 25 s for systemd to answer, and the answer waits for your
+        // password: after that the prompt closed and the Apply "timed out". 5 minutes.
+        environment: ({ SYSTEMD_BUS_TIMEOUT: "300" })
+
         stderr: StdioCollector {
             id: switchErr
         }
