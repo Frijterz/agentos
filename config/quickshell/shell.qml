@@ -20,6 +20,12 @@ ShellRoot {
         Screensaver {}
     }
 
+    // The fade just before the screensaver.
+    Variants {
+        model: Quickshell.screens
+        Dim {}
+    }
+
     ClaudePanel {}
 
     Osd {}
@@ -111,10 +117,15 @@ ShellRoot {
         function toggle(): void { Telemetry.toggleMonitor() }
     }
 
-    // qs ipc call screensaver start|stop  (hypridle)
+    // qs ipc call screensaver dim|undim|start|stop  (hypridle)
     IpcHandler {
         target: "screensaver"
+        function dim(): void { ShellState.dimming = true }
+        function undim(): void { ShellState.dimming = false }
         function start(): void { ShellState.screensaver = true }
-        function stop(): void { ShellState.screensaver = false }
+        function stop(): void {
+            ShellState.screensaver = false;
+            ShellState.dimming = false;
+        }
     }
 }

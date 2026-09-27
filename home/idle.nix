@@ -1,4 +1,5 @@
-# Idle chain: screensaver (4 min) → lock (10) → screen off (11) → suspend (30).
+# Idle chain: fade (3:45) → screensaver (4 min) → lock (10) → screen off (11) →
+# suspend (30).
 # Full paths because systemd user services don't get your shell's PATH.
 { config, pkgs, ... }:
 let
@@ -34,6 +35,12 @@ in
         after_sleep_cmd = "${hyprctl} dispatch dpms on";
       };
       listener = [
+        # 15 s of slow fade first (config/quickshell/Dim.qml): any activity stops it.
+        {
+          timeout = 225;
+          on-timeout = "${qs} ipc call screensaver dim";
+          on-resume = "${qs} ipc call screensaver undim";
+        }
         {
           timeout = 240;
           on-timeout = "${qs} ipc call screensaver start";

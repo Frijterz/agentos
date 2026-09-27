@@ -9,6 +9,8 @@ import Quickshell.Services.Polkit
 Singleton {
     property bool claudeOpen: false
     property bool screensaver: false
+    property bool dimming: false // the fade before the screensaver (Dim.qml)
+    onScreensaverChanged: dimming = false // it takes over, or you're back
     property bool cheatsheetOpen: false
     property bool overviewOpen: false
     property bool systemOpen: false
