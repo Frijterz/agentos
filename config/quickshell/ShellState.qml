@@ -15,6 +15,7 @@ Singleton {
     property bool launcherOpen: false
     property bool calendarOpen: false
     property bool clipboardOpen: false
+    property bool switcherOpen: false
     // Background day/night preview (qs ipc call background preview 0…1); -1 follows the sun.
     property real daylightPreview: -1
     // A question for the Claude panel (from the launcher's "Ask Claude"); it sends it.

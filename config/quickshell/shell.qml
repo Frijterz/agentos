@@ -37,6 +37,9 @@ ShellRoot {
 
     Clipboard {}
 
+    // Alt+Tab (its IPC target, "switcher", lives inside).
+    Switcher {}
+
     // Notification pop-ups (the daemon itself is the Notifs singleton).
     Toasts {}
 

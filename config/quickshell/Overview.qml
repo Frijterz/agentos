@@ -190,6 +190,11 @@ PanelWindow {
                             // Capture once per opening; null while closed.
                             captureSource: ShellState.overviewOpen ? win.modelData.wayland : null
                             live: false
+                            // Smooth downscaling (see Switcher.qml): 4x, mipmapped.
+                            layer.enabled: true
+                            layer.textureSize: Qt.size(width * 4, height * 4)
+                            layer.mipmap: true
+                            layer.smooth: true
                         }
 
                         Rectangle {
