@@ -43,6 +43,35 @@ PanelWindow {
         messages.append({ who, body, rid: rid ?? "", state: state ?? "" });
     }
 
+    // ── Voice input (mic button): agentos-dictate records until SIGTERM, then prints
+    // the transcription (local whisper.cpp, ~4 s for a short sentence). ──
+    property bool transcribing: false
+
+    function toggleDictation() {
+        if (!dictateProc.running) {
+            transcribing = false;
+            dictateProc.running = true;
+        } else if (!transcribing) {
+            transcribing = true;
+            dictateProc.signal(15); // SIGTERM: stop recording, start transcribing
+        }
+    }
+
+    Process {
+        id: dictateProc
+        command: ["agentos-dictate"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const said = text.trim();
+                if (said)
+                    input.text = input.text ? input.text + " " + said : said;
+                root.transcribing = false;
+                input.forceActiveFocus();
+            }
+        }
+        onExited: root.transcribing = false
+    }
+
     // Path of a screenshot to send with the next question (camera button).
     property string attachedShot: ""
 
@@ -72,14 +101,11 @@ PanelWindow {
             return;
         messages.clear();
         sessionId = "";
-        ctxUsed = 0;
     }
 
-    // ── Usage meters: plan limits (rate_limit_event) and this chat's context ──
-    // Limits only arrive with a reply, so the last ones are kept in usage.json.
+    // ── Usage meters: plan limits (rate_limit_event, agentos-usage) ──
+    // The last values are kept in usage.json.
     property var limits: ({})
-    property int ctxUsed: 0
-    property int ctxWindow: 0
     property real now: Date.now() / 1000
 
     Timer {
@@ -137,10 +163,6 @@ PanelWindow {
         return "resets " + Qt.formatDateTime(d, at - now < 86400 ? "HH:mm" : "ddd HH:mm");
     }
 
-    function tokens(n) {
-        return n >= 1e6 ? (n / 1e6).toFixed(n % 1e6 ? 1 : 0) + "M" : n >= 1000 ? Math.round(n / 1000) + "k" : String(n);
-    }
-
     // Streamed text goes into the last Claude bubble, or a new one after a tool line.
     function appendText(chunk) {
         const i = messages.count - 1;
@@ -173,14 +195,7 @@ PanelWindow {
             for (const block of ev.message.content)
                 if (block.type === "tool_use")
                     add("tool", toolLabel(block.name, block.input));
-            // Context now = everything this reply was given plus what it wrote.
-            // Subagents (parent_tool_use_id) have their own context; skip them.
-            const u = ev.message.usage;
-            if (u && !ev.parent_tool_use_id)
-                ctxUsed = (u.input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0) + (u.cache_creation_input_tokens ?? 0) + (u.output_tokens ?? 0);
         } else if (ev.type === "result") {
-            for (const m of Object.values(ev.modelUsage ?? {}))
-                ctxWindow = Math.max(ctxWindow, m.contextWindow ?? 0);
             // Includes deny rules (sudo, switch, push) that never reach a card.
             for (const d of ev.permission_denials ?? [])
                 add("note", "Not allowed: " + toolLabel(d.tool_name, d.tool_input));
@@ -588,7 +603,7 @@ PanelWindow {
                 }
             }
 
-            // Usage: plan limits (whole account) and this chat's context window.
+            // Usage: plan limits for the whole account.
             Column {
                 Layout.fillWidth: true
                 spacing: 5
@@ -599,8 +614,7 @@ PanelWindow {
                         const live = w => w && w.resetsAt > root.now ? w.utilization : (w ? 0 : -1);
                         return [
                             { label: "5-hour", value: live(fh), detail: root.resetLabel(fh?.resetsAt) },
-                            { label: "Weekly", value: live(sd), detail: root.resetLabel(sd?.resetsAt) },
-                            { label: "Context", value: root.ctxWindow ? root.ctxUsed / root.ctxWindow : (root.ctxUsed ? -1 : 0), detail: root.ctxWindow ? root.tokens(root.ctxUsed) + " / " + root.tokens(root.ctxWindow) : "" }
+                            { label: "Weekly", value: live(sd), detail: root.resetLabel(sd?.resetsAt) }
                         ];
                     }
 
@@ -649,6 +663,7 @@ PanelWindow {
 
                         Text {
                             Layout.preferredWidth: 104
+                            horizontalAlignment: Text.AlignRight
                             text: modelData.detail
                             color: Theme.alpha(Theme.fg, 0.45)
                             font.family: Theme.fontSans
@@ -865,6 +880,44 @@ PanelWindow {
                     enabled: !root.busy && !shotProc.running
                     cursorShape: Qt.PointingHandCursor
                     onClicked: shotProc.running = true
+                }
+            }
+
+            // Microphone: click to talk, click again to stop. Transcribed locally by
+            // agentos-dictate (whisper.cpp); the text lands in the input field for you to
+            // check and send yourself.
+            Rectangle {
+                id: micButton
+                readonly property bool recording: dictateProc.running && !root.transcribing
+
+                Layout.preferredWidth: 40
+                Layout.preferredHeight: 40
+                radius: 12
+                color: recording ? Theme.alpha(Theme.warn, 0.3) : micArea.containsMouse ? Theme.alpha(Theme.fg, 0.12) : Theme.alpha(Theme.fg, 0.06)
+                opacity: root.busy || root.transcribing ? 0.4 : 1
+
+                SequentialAnimation on border.width {
+                    running: micButton.recording
+                    loops: Animation.Infinite
+                    NumberAnimation { from: 0; to: 2; duration: 600 }
+                    NumberAnimation { from: 2; to: 0; duration: 600 }
+                }
+                border.color: Theme.warn
+
+                Text {
+                    anchors.centerIn: parent
+                    text: root.transcribing ? "󰔟" : "󰍬"
+                    color: parent.recording ? Theme.warn : Theme.fg
+                    font.family: Theme.fontMono
+                    font.pixelSize: 17
+                }
+                MouseArea {
+                    id: micArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    enabled: !root.busy && !root.transcribing
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.toggleDictation()
                 }
             }
 

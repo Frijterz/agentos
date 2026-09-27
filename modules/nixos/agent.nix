@@ -8,6 +8,26 @@
   ...
 }:
 let
+  # Voice input for the Claude panel's mic button: local speech-to-text (whisper.cpp,
+  # "small" multilingual model, Dutch and English). Nothing leaves the laptop.
+  whisperModel = pkgs.fetchurl {
+    url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin";
+    hash = "sha256-G+OpsgY4Z7k35k4ux0gzZKeZF+FX+pjF2UtcH//qmHs=";
+  };
+  agentos-dictate = pkgs.writeShellApplication {
+    name = "agentos-dictate";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.gnused
+      pkgs.pipewire
+      pkgs.whisper-cpp
+    ];
+    text = ''
+      export AGENTOS_WHISPER_MODEL=${whisperModel}
+    ''
+    + builtins.readFile ../../agent/agentos-dictate.sh;
+  };
+
   # Plan limits for the panel's meters, via Claude Code's `/usage` (no model turn).
   agentos-usage = pkgs.writeShellApplication {
     name = "agentos-usage";
@@ -140,6 +160,7 @@ in
     agentos-watch
     agentos-mode
     agentos-usage
+    agentos-dictate
   ];
 
   # Modes last for one session: start every login in normal mode, so a forgotten
