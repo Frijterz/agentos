@@ -152,6 +152,5 @@ in
     };
   };
 
-  programs.starship.enable = true;
   programs.btop.enable = true;
 }
