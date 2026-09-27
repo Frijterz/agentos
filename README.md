@@ -15,7 +15,7 @@
 | | |
 |---|---|
 | ![Boot splash with the disk passphrase prompt](docs/screenshots/2-boot.webp) | ![Lock screen](docs/screenshots/3-lock.webp) |
-| **Boot splash** with the disk passphrase prompt (rendered from the theme's own images and layout) | **Lock screen** |
+| **Boot splash** with the disk passphrase prompt | **Lock screen** |
 | ![Screensaver](docs/screenshots/4-screensaver.webp) | ![The Claude panel answering from the mission log](docs/screenshots/5-claude.webp) |
 | **Screensaver**: true black with a dim clock ring (OLED-safe) | **Claude panel** (Super+A), here answering from the mission log |
 | ![System menu](docs/screenshots/6-system.webp) | ![A fresh terminal](docs/screenshots/7-terminal.webp) |
