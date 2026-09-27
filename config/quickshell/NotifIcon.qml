@@ -1,7 +1,9 @@
 import QtQuick
 import Quickshell
 
-// A notification's picture: its own image, else the app's icon, else a bell glyph.
+// A notification's picture: its own image, else the app's icon, else a bell line icon.
+// Claude's get the Claude mark: Claude Code in a terminal sends them through Ghostty
+// with no app name, only the title "Claude Code", so they'd show Ghostty's icon.
 Item {
     id: root
 
@@ -17,6 +19,8 @@ Item {
             return "";
         if (n.image)
             return n.image;
+        if (Theme.claudeIcon && (/claude/i.test(n.appName ?? "") || n.summary === "Claude Code"))
+            return Theme.claudeIcon;
         const name = n.appIcon || n.desktopEntry;
         if (!name)
             return "";
