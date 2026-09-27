@@ -13,7 +13,7 @@
 
   # systemd in initrd so Plymouth can ask for the LUKS password graphically.
   boot.initrd.systemd.enable = true;
-  boot.plymouth.enable = true; # themed by Stylix
+  boot.plymouth.enable = true; # agentOS theme: splash.nix
   boot.consoleLogLevel = 3;
   boot.initrd.verbose = false;
   boot.kernelParams = [
