@@ -1,4 +1,7 @@
-{ pkgs, ... }:
+{ config, pkgs, ... }:
+let
+  c = config.lib.stylix.colors; # the Mission Control palette, hex without "#"
+in
 {
   home.packages = with pkgs; [
     grim
@@ -76,19 +79,42 @@
   };
 
   # Launcher (Super+Space) until the Quickshell launcher exists.
+  # fuzzel now only serves the Super+P password menu (rofi-rbw needs a dmenu-style
+  # picker; apps use the Quickshell launcher). Styled like that launcher: same card,
+  # colours and position, so Stylix's fuzzel colours are off.
+  stylix.targets.fuzzel.enable = false;
   programs.fuzzel = {
     enable = true;
     settings = {
       main = {
         terminal = "ghostty";
-        width = 40;
-        lines = 10;
-        horizontal-pad = 24;
+        font = "${config.stylix.fonts.monospace.name}:size=12";
+        prompt = "'󰌾  '";
+        anchor = "top";
+        y-margin = 192; # 20% down, like the launcher
+        width = 48;
+        lines = 8;
+        horizontal-pad = 20;
         vertical-pad = 16;
+        inner-pad = 10;
+        line-height = 26;
+        icons-enabled = false;
+      };
+      colors = {
+        background = "${c.base00}db"; # 86%
+        text = "${c.base05}ff";
+        prompt = "${c.base0D}ff";
+        placeholder = "${c.base04}ff";
+        input = "${c.base05}ff";
+        match = "${c.base0D}ff";
+        selection = "${c.base0D}29"; # 16%
+        selection-text = "${c.base0D}ff";
+        selection-match = "${c.base0D}ff";
+        border = "${c.base0D}4d"; # 30%
       };
       border = {
-        radius = 14;
-        width = 2;
+        radius = 20;
+        width = 1;
       };
     };
   };
