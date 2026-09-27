@@ -1,9 +1,10 @@
 # Weather for the screensaver and lock screen: fetched from wttr.in (free, no account)
-# every 30 minutes into ~/.local/state/agentos/weather.json. wttr.in picks the place
-# from your IP address; set `location` below (e.g. "Amsterdam") to pin it instead.
+# every 30 minutes into ~/.local/state/agentos/weather.json. Pinned to a place because
+# wttr.in's guess from the IP address (the provider's location) said Utrecht; set
+# `location = ""` to go back to that guess, e.g. when travelling.
 { pkgs, ... }:
 let
-  location = "";
+  location = "Veghel,Netherlands";
 
   agentos-weather = pkgs.writeShellApplication {
     name = "agentos-weather";
