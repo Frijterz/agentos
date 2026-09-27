@@ -1,6 +1,6 @@
 # Screenshot editor: satty opens a fresh screenshot to draw arrows, boxes, text or
 # blur on, and to crop. Enter copies the result and closes; Ctrl+S saves it to
-# ~/Pictures/Screenshots. Keys in hyprland.conf: Super+Ctrl+S or Print for an area,
+# ~/Pictures/Screenshots. Keys in hyprland.lua: Super+Ctrl+S or Print for an area,
 # Shift+Print for the whole screen (Super+Shift+S stays the quick copy, no editor).
 { osConfig, ... }:
 let

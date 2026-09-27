@@ -42,15 +42,10 @@ case "$mode" in
   *) powerprofilesctl set balanced ;;
 esac
 
-# Hyprland eye candy: switched off at runtime; a reload restores the config. `keyword`
-# only exists for the old hyprlang config; a Lua config takes hl.config() via eval.
-# TRANSITION: once every session is Lua, only the eval form remains.
+# Hyprland eye candy: switched off at runtime (hl.config through eval); a reload
+# restores the config.
 if [ "$mode" = battery ]; then
-  if [ "$(hyprctl dispatch 'hl.dsp.no_op()')" = ok ]; then
-    hyprctl eval 'hl.config({ animations = { enabled = false }, decoration = { blur = { enabled = false }, shadow = { enabled = false } } })' >/dev/null
-  else
-    hyprctl --batch "keyword animations:enabled 0 ; keyword decoration:blur:enabled 0 ; keyword decoration:shadow:enabled 0" >/dev/null
-  fi
+  hyprctl eval 'hl.config({ animations = { enabled = false }, decoration = { blur = { enabled = false }, shadow = { enabled = false } } })' >/dev/null
 elif [ "$current" = battery ]; then
   hyprctl reload >/dev/null
 fi

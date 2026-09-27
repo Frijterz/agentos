@@ -12,18 +12,8 @@ let
     colors = config.lib.stylix.colors;
   };
   hyprctl = "${pkgs.hyprland}/bin/hyprctl";
-  # Screen off / on, in whichever config language the running Hyprland speaks (a Lua
-  # no-op answers "ok" only under a Lua config).
-  # TRANSITION: once every session is Lua, only the hl.dsp.dpms form remains.
-  dpms =
-    state:
-    pkgs.writeShellScript "agentos-dpms-${state}" ''
-      if [ "$(${hyprctl} dispatch 'hl.dsp.no_op()')" = ok ]; then
-        ${hyprctl} dispatch 'hl.dsp.dpms({ action = "${state}" })'
-      else
-        ${hyprctl} dispatch dpms ${state}
-      fi
-    '';
+  # Screen off / on (Hyprland's Lua config takes its commands as Lua).
+  dpms = state: "${hyprctl} dispatch 'hl.dsp.dpms({ action = \"${state}\" })'";
   loginctl = "${pkgs.systemd}/bin/loginctl";
   systemctl = "${pkgs.systemd}/bin/systemctl";
 

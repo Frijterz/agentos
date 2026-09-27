@@ -44,18 +44,6 @@ in
     '';
   };
 
-  # TRANSITION, removed after the first Lua login: the session that is running while
-  # this is applied still reads hyprland.conf and reloads it during the switch; without
-  # the file it would lose its key bindings until you log out. Hyprland prefers
-  # hyprland.lua whenever it starts, so this only serves that one session.
-  xdg.configFile."hypr/hyprland.conf".text = ''
-    general {
-      col.active_border = rgba(${c.base0D}ee) rgba(${c.base0D}66) 45deg
-      col.inactive_border = rgb(${c.base02})
-    }
-    source = ${vars.flakeDir}/config/hypr/hyprland.conf
-  '';
-
   # Quickshell draws the wallpaper (config/quickshell/Background.qml).
   services.hyprpaper.enable = lib.mkForce false;
 }

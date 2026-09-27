@@ -1,7 +1,7 @@
 # Night light: gammastep warms the screen after sunset and fades back after sunrise,
 # following the sun for Veghel (city-level coordinates, same place as home/weather.nix),
 # so there's no schedule to keep up with the seasons. The change is a slow fade over
-# twilight, not a jump. Super+N pauses or resumes it (hyprland.conf).
+# twilight, not a jump. Super+N pauses or resumes it (hyprland.lua).
 { ... }:
 {
   services.gammastep = {

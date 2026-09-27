@@ -21,7 +21,7 @@ Singleton {
     // hwmon numbers change between boots, so find k10temp by name once.
     property string tempPath: ""
 
-    // btop in its own terminal window (app id agentos.btop, floated by hyprland.conf):
+    // btop in its own terminal window (app id agentos.btop, floated by hyprland.lua):
     // close it if it's open, else open it.
     function toggleMonitor() {
         const open = ToplevelManager.toplevels.values.find(t => t.appId === "agentos.btop");

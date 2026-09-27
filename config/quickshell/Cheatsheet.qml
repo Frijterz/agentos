@@ -4,7 +4,7 @@ import Quickshell.Io
 import Quickshell.Wayland
 
 // Key binding cheat sheet (Super+/, Esc or click to close). Reads `hyprctl binds -j`
-// on open, so it lists exactly what hyprland.conf defines with `bindd`.
+// on open, so it lists exactly the bindings in hyprland.lua that have a description.
 PanelWindow {
     id: root
 

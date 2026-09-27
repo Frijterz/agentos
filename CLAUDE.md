@@ -22,7 +22,11 @@ and why, in plain language, and teach the Nix concept when it first comes up.
 New files must be `git add`-ed before building: flakes only see tracked files.
 
 ## Live files (no rebuild)
-- `config/hypr/hyprland.conf`: Hyprland reloads on save. Check `hyprctl configerrors`.
+- `config/hypr/hyprland.lua`: Hyprland reloads on save. Check `hyprctl configerrors`;
+  `Hyprland --verify-config -c <file>` checks a Lua file without touching the session.
+  Under the Lua config `hyprctl dispatch` takes Lua (`'hl.dsp.focus({ workspace = 3 })'`)
+  and `hyprctl keyword` is gone (use `hyprctl eval 'hl.config({...})'`). The API:
+  `/run/current-system/sw/share/hypr/stubs/hl.meta.lua`.
 - `config/quickshell/*.qml`: Quickshell hot-reloads. Check
   `journalctl --user -u quickshell -f` for QML errors.
 Iterate on the look here, with small steps the user can see immediately.
@@ -50,7 +54,8 @@ kills it and any approval card it is waiting on.
 
 ## Verified on the real machine (2026-09-26)
 - Hyprland 0.56.2 runs with no config errors and no plugins (on purpose: they break on
-  Hyprland updates); `configType = "hyprlang"` is pinned in home/hyprland.nix. The
+  Hyprland updates). Config in Lua since 2026-09-27 (0.57 drops hyprlang): Home Manager
+  generates hyprland.lua and require()s config/hypr/hyprland.lua. The
   duplicate hyprland portal warning from dbus-broker is an upstream NixOS quirk, harmless.
 - Quickshell: panel keyboard focus works; UPower percentage is 0–1; FileView does *not*
   see Home Manager's symlink swap, so home/shell.nix restarts the shell on a new theme.

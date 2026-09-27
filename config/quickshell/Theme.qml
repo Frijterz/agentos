@@ -42,7 +42,7 @@ Singleton {
         return logoDir ? "file://" + logoDir + "/" + name : "";
     }
 
-    // Corners: cards match the windows (decoration:rounding in hyprland.conf); controls
+    // Corners: cards match the windows (decoration.rounding in hyprland.lua); controls
     // inside a card are smaller so the curves nest.
     readonly property int radius: 8
     readonly property int radiusSmall: 5
