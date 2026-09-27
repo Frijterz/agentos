@@ -21,7 +21,28 @@
     # this public repo); rbw asks for the master password with pinentry-gnome3.
     rbw
     pinentry-gnome3
+    # Passwords from the launcher (Super+P types, Super+Shift+P copies): fuzzel search
+    # over the Bitwarden vault via rbw; typed with wtype, so no clipboard by default.
+    # Patched: fuzzel 1.14 dropped the long `--override=` option (only `-o` works) and
+    # rofi-rbw 1.7 uses it, so fuzzel quit instantly and nothing appeared. The attached
+    # short form keeps it one argument. --replace-fail: the build breaks once upstream
+    # changes this line, which is the cue to drop the patch.
+    (rofi-rbw-wayland.overrideAttrs (old: {
+      postPatch = (old.postPatch or "") + ''
+        substituteInPlace src/rofi_rbw/selector/fuzzel.py \
+          --replace-fail 'f"--override=key-bindings' 'f"-okey-bindings'
+      '';
+    }))
   ];
+
+  # Despite the name, rofi-rbw works with fuzzel. A copied password is cleared after 20 s.
+  xdg.configFile."rofi-rbw.rc".text = ''
+    selector = fuzzel
+    typer = wtype
+    clipboarder = wl-copy
+    clear-after = 20
+    prompt = 󰌾 Bitwarden
+  '';
 
   # Links and web files open in Chromium (Super+B).
   xdg.mimeApps = {
