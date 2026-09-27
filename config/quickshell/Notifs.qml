@@ -2,6 +2,7 @@ pragma Singleton
 
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import Quickshell.Services.Notifications
 
 // The notification daemon (replaces mako): receives desktop notifications, keeps a
@@ -48,6 +49,20 @@ Singleton {
         dismiss(n);
     }
 
+    // A soft sonar ping (transmission-in) when a notification pops up; at most one per
+    // 1.5 s so a burst doesn't pile up. Through PipeWire: follows volume and mute.
+    property real lastTone: 0
+    Process {
+        id: tone
+        command: ["pw-play", Theme.soundDir + "/transmission-in.wav"]
+    }
+    function beep() {
+        if (!Theme.soundDir || tone.running || Date.now() - lastTone < 1500)
+            return;
+        lastTone = Date.now();
+        tone.running = true;
+    }
+
     NotificationServer {
         id: server
 
@@ -64,8 +79,10 @@ Singleton {
             a[n.id] = Date.now();
             root.arrived = a;
             root.unread++;
-            if (!root.dnd || root.isCritical(n))
+            if (!root.dnd || root.isCritical(n)) {
                 root.toasts = [n].concat(root.toasts).slice(0, 4);
+                root.beep();
+            }
             // Keep the history bounded: drop the oldest beyond 50.
             const all = server.trackedNotifications.values;
             for (let i = 0; i < all.length - 50; i++)

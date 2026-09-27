@@ -20,6 +20,9 @@ let
     };
   } ''sed 's/<path /<path fill="#D97757" /' "$src" > "$out"'';
 
+  # UI sounds for notifications (and the lock screen, home/idle.nix).
+  sounds = import ../modules/nixos/themes/agentos-sounds.nix { inherit pkgs; };
+
   # The agentOS logo (same images as the boot splash), for wallpaper and screensaver.
   logo = import ../modules/nixos/themes/agentos-logo.nix {
     inherit pkgs;
@@ -57,6 +60,7 @@ in
     fontMono = fonts.monospace.name;
     claudeIcon = "${claudeIcon}";
     logoDir = "${logo}";
+    soundDir = "${sounds}";
   };
 
   systemd.user.services.quickshell = {

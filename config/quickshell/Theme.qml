@@ -29,6 +29,8 @@ Singleton {
 
     // agentOS logo images (modules/nixos/themes/agentos-logo.nix); "" until the rebuild.
     readonly property string logoDir: scheme.logoDir ?? ""
+    // UI sounds (modules/nixos/themes/agentos-sounds.nix); "" until the rebuild.
+    readonly property string soundDir: scheme.soundDir ?? ""
     function logo(name) {
         return logoDir ? "file://" + logoDir + "/" + name : "";
     }

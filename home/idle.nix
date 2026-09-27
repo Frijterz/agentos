@@ -13,13 +13,23 @@ let
   hyprctl = "${pkgs.hyprland}/bin/hyprctl";
   loginctl = "${pkgs.systemd}/bin/loginctl";
   systemctl = "${pkgs.systemd}/bin/systemctl";
+
+  # Every lock (idle, Super+Ctrl+L, the system menu, before sleep) runs this: the lower
+  # sonar ping (transmission closes) on locking, the higher one on unlocking.
+  sounds = import ../modules/nixos/themes/agentos-sounds.nix { inherit pkgs; };
+  lock = pkgs.writeShellScript "agentos-lock" ''
+    ${pkgs.procps}/bin/pidof hyprlock >/dev/null && exit 0
+    ${pkgs.pipewire}/bin/pw-play ${sounds}/transmission-out.wav &
+    ${pkgs.hyprlock}/bin/hyprlock
+    ${pkgs.pipewire}/bin/pw-play ${sounds}/transmission-in.wav
+  '';
 in
 {
   services.hypridle = {
     enable = true;
     settings = {
       general = {
-        lock_cmd = "${pkgs.procps}/bin/pidof hyprlock || ${pkgs.hyprlock}/bin/hyprlock";
+        lock_cmd = "${lock}";
         before_sleep_cmd = "${loginctl} lock-session";
         after_sleep_cmd = "${hyprctl} dispatch dpms on";
       };
