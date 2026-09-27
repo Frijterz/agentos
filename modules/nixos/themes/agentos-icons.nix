@@ -67,6 +67,9 @@ let
     "link"
     "type"
     "trash-2"
+    # Claude FM on the wallpaper
+    "play"
+    "square"
   ];
 in
 pkgs.runCommand "agentos-icons" { } ''

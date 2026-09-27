@@ -1,7 +1,9 @@
 import QtQuick
 import QtQuick.Shapes
 import Quickshell
+import Quickshell.Hyprland
 import Quickshell.Io
+import Quickshell.Services.Mpris
 import Quickshell.Services.UPower
 import Quickshell.Wayland
 
@@ -338,6 +340,182 @@ PanelWindow {
                     font.family: Theme.fontMono
                     font.pixelSize: 10
                     font.letterSpacing: 2
+                }
+            }
+        }
+        // Claude FM console, bottom right (home/radio.nix): play / stop, the current song
+        // (read off the stream by agentos-radio-now) and sound waves from cava. The waves
+        // only move while the radio plays and no window covers this corner (nothing
+        // fullscreen), at 10 fps on battery, and rest flat in battery mode.
+        Item {
+            id: radio
+
+            x: root.width - width - 56
+            y: root.height - height - 58
+            width: 300
+            height: 122
+
+            readonly property var player: Mpris.players.values.find(p => (p.trackTitle || "").startsWith("Claude FM")) ?? null
+            readonly property bool on: player !== null
+            readonly property bool playing: player?.playbackState === MprisPlaybackState.Playing
+            property bool tuning: false // clicked play, the stream is still starting
+            onOnChanged: tuning = false
+            Timer {
+                running: radio.tuning
+                interval: 20000
+                onTriggered: radio.tuning = false
+            }
+
+            property var song: null
+            FileView {
+                path: Quickshell.env("XDG_RUNTIME_DIR") + "/agentos-radio-now.json"
+                watchChanges: true
+                printErrors: false
+                onFileChanged: reload()
+                onLoaded: {
+                    try {
+                        const d = JSON.parse(text());
+                        radio.song = d.title ? d : null;
+                    } catch (e) {
+                        radio.song = null;
+                    }
+                }
+                onLoadFailed: radio.song = null
+            }
+
+            // In view: no window on this workspace overlaps the console (positions in layout
+            // coordinates, so relative to this monitor's corner).
+            readonly property var monitor: Hyprland.monitorFor(root.screen)
+            readonly property var workspace: monitor?.activeWorkspace ?? null
+            readonly property rect area: Qt.rect(x + plot.x, y + plot.y, width, height)
+            readonly property bool inView: !(workspace?.toplevels?.values ?? []).some(t => {
+                const o = t.lastIpcObject;
+                if (!o?.at || !o?.size)
+                    return false;
+                if (o.fullscreen)
+                    return true;
+                const wx = o.at[0] - (monitor?.lastIpcObject?.x ?? 0), wy = o.at[1] - (monitor?.lastIpcObject?.y ?? 0);
+                return wx < area.x + area.width && wx + o.size[0] > area.x && wy < area.y + area.height && wy + o.size[1] > area.y;
+            })
+            // Hyprland announces no move or resize of floating windows: ask for positions.
+            Timer {
+                interval: 2000
+                repeat: true
+                running: radio.playing
+                triggeredOnStart: true
+                onTriggered: Hyprland.refreshToplevels()
+            }
+            property var levels: []
+            Process {
+                id: cava
+                readonly property bool wanted: radio.playing && radio.inView && Theme.animatedBackground
+                running: wanted
+                command: ["cava", "-p", Quickshell.env("HOME") + "/.config/agentos/cava" + (UPower.onBattery ? "-battery" : "") + ".conf"]
+                stdout: SplitParser {
+                    onRead: data => radio.levels = data.split(";").filter(v => v !== "").map(Number)
+                }
+                onRunningChanged: if (!running) radio.levels = []
+            }
+            // Plugged in or out while the waves move: restart cava with the other rate.
+            Connections {
+                target: UPower
+                function onOnBatteryChanged() {
+                    if (cava.running) {
+                        cava.running = false;
+                        cava.running = Qt.binding(() => cava.wanted);
+                    }
+                }
+            }
+
+            Column {
+                anchors.fill: parent
+                spacing: 8
+
+                Text {
+                    text: "CLAUDE FM  ·  " + (radio.tuning ? "TUNING IN" : !radio.on ? "OFF AIR" : radio.playing ? "LIVE" : "PAUSED")
+                    color: Theme.accent
+                    opacity: radio.on ? 0.7 : 0.4
+                    font.family: Theme.fontMono
+                    font.pixelSize: 11
+                    font.letterSpacing: 2
+                }
+
+                Row {
+                    spacing: 14
+
+                    // Play / stop, the same as Super+R.
+                    Rectangle {
+                        id: button
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 40
+                        height: 40
+                        radius: 20
+                        color: buttonArea.containsMouse ? Theme.alpha(Theme.accent, 0.18) : Theme.alpha(Theme.bg, 0.5)
+                        border.width: 1
+                        border.color: Theme.alpha(Theme.accent, radio.on ? 0.7 : 0.35)
+                        LineIcon {
+                            anchors.centerIn: parent
+                            size: 16
+                            name: radio.on || radio.tuning ? "square" : "play"
+                            tone: "accent"
+                            glyph: radio.on || radio.tuning ? "■" : "▶"
+                        }
+                        MouseArea {
+                            id: buttonArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                radio.tuning = !radio.on;
+                                Quickshell.execDetached(["agentos-radio", "toggle"]);
+                            }
+                        }
+                    }
+
+                    Column {
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 3
+                        Text {
+                            width: radio.width - button.width - 14
+                            text: radio.song?.title ?? (radio.on ? "Music for thinking and building" : "Lo-fi and ambient, made by musicians")
+                            elide: Text.ElideRight
+                            color: Theme.fg
+                            opacity: radio.song ? 0.85 : 0.45
+                            font.family: Theme.fontSans
+                            font.pixelSize: 14
+                        }
+                        Text {
+                            width: radio.width - button.width - 14
+                            text: (radio.song?.artist ?? (radio.on ? "reading the ticker…" : "Super+R  or  press play")).toUpperCase()
+                            elide: Text.ElideRight
+                            color: Theme.fg
+                            opacity: 0.4
+                            font.family: Theme.fontMono
+                            font.pixelSize: 10
+                            font.letterSpacing: 1.5
+                        }
+                    }
+                }
+
+                // Sound waves: 32 bars rising from a baseline.
+                Row {
+                    height: 36
+                    spacing: 3
+                    Repeater {
+                        model: 32
+                        delegate: Rectangle {
+                            required property int index
+                            anchors.bottom: parent.bottom
+                            width: 6
+                            height: 2 + (radio.levels[index] ?? 0) / 100 * 34
+                            radius: 1
+                            color: Theme.accent
+                            opacity: radio.on ? 0.55 : 0.2
+                            Behavior on height {
+                                NumberAnimation { duration: 50 }
+                            }
+                        }
+                    }
                 }
             }
         }

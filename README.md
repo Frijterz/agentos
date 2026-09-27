@@ -64,7 +64,8 @@ orange, calm and barely moving.
 
 **Apps and tools**: Ghostty with Herdr for agent sessions, Chromium with Bitwarden, rbw
 passwords (Super+P), Yazi and Thunar for files, satty to annotate screenshots, btop, and
-Claude FM (Anthropic's lo-fi stream) as audio only through mpv (Super+R).
+Claude FM (Anthropic's lo-fi stream) as audio only through mpv (Super+R), with a console
+on the wallpaper: play / stop, the current song and sound waves.
 
 **The laptop**: LUKS + Btrfs with snapper, both speakers with ASUS tuning, an 80% charge
 limit and s2idle suspend. No Hyprland plugins, on purpose: they break on Hyprland updates.
