@@ -79,7 +79,7 @@ PanelWindow {
                         anchors.fill: parent
                         anchors.margins: -4
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: Hyprland.dispatch("workspace " + dot.wsId)
+                        onClicked: ShellState.hyprDispatch("workspace " + dot.wsId, "hl.dsp.focus({ workspace = " + dot.wsId + " })")
                     }
                 }
             }

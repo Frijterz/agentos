@@ -2,11 +2,29 @@ pragma Singleton
 
 import QtQuick
 import Quickshell
+import Quickshell.Hyprland
 import Quickshell.Io
 import Quickshell.Services.Polkit
 
 // Shared UI state, so any component can open the Claude panel etc.
 Singleton {
+    id: state
+
+    // Hyprland commands, in the old (hyprlang) or the Lua config language, whichever
+    // the running Hyprland speaks: a Lua no-op answers "ok" only under a Lua config.
+    // TRANSITION: once every session is Lua, only the Lua form remains.
+    property bool hyprLua: false
+    Process {
+        running: true
+        command: ["hyprctl", "dispatch", "hl.dsp.no_op()"]
+        stdout: StdioCollector {
+            onStreamFinished: state.hyprLua = text.trim() === "ok"
+        }
+    }
+    function hyprDispatch(legacy, lua) {
+        Hyprland.dispatch(hyprLua ? lua : legacy);
+    }
+
     property bool claudeOpen: false
     property bool screensaver: false
     property bool dimming: false // the fade before the screensaver (Dim.qml)

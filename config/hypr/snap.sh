@@ -12,7 +12,10 @@ addr="$(jq -r '.address // empty' <<<"$win")"
 [ -n "$addr" ] || exit 0
 
 mon="$(hyprctl monitors -j | jq --argjson id "$(jq '.monitor' <<<"$win")" '.[] | select(.id == $id)')"
-gap="$(hyprctl getoption general:gaps_out -j | jq -r '.custom // (.int | tostring)' | awk '{print $1}')"
+# gaps_out from Hyprland; 12 (hyprland.lua's value) if it can't be read.
+# (Lua configs answer {"css": "12 12 12 12"}, hyprlang ones {"custom": "12 12 12 12"}.)
+gap="$(hyprctl getoption general:gaps_out -j 2>/dev/null | jq -r '.css // .custom // (.int | tostring)' 2>/dev/null | awk '{print $1}' || true)"
+[[ "$gap" =~ ^[0-9]+$ ]] || gap=12
 
 # Usable area in layout coordinates (logical pixels: monitor pixels / scale).
 read -r x0 y0 w h < <(jq -r --argjson g "$gap" '
@@ -35,4 +38,13 @@ case "$side" in
     ;;
 esac
 
-hyprctl --batch "dispatch setfloating address:$addr ; dispatch resizewindowpixel exact $3 $4,address:$addr ; dispatch movewindowpixel exact $1 $2,address:$addr" >/dev/null
+# Hyprland's Lua config takes Lua; the old hyprlang config takes the old commands.
+# TRANSITION: once every session is Lua, only the first branch remains.
+if [ "$(hyprctl dispatch 'hl.dsp.no_op()')" = ok ]; then
+  w="window = \"address:$addr\""
+  hyprctl eval "hl.dispatch(hl.dsp.window.float({ action = \"enable\", $w }))
+    hl.dispatch(hl.dsp.window.resize({ x = $3, y = $4, $w }))
+    hl.dispatch(hl.dsp.window.move({ x = $1, y = $2, $w }))" >/dev/null
+else
+  hyprctl --batch "dispatch setfloating address:$addr ; dispatch resizewindowpixel exact $3 $4,address:$addr ; dispatch movewindowpixel exact $1 $2,address:$addr" >/dev/null
+fi

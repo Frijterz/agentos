@@ -5,7 +5,8 @@
 #
 # Claude runs inside the agentos repo (so it follows CLAUDE.md) and may edit files
 # there, build, and commit. Other actions go to agentos-approve, which asks you in the
-# panel. sudo, switch, push and hyprctl dispatch/keyword are denied outright.
+# panel. sudo, switch, push and hyprctl dispatch/keyword/eval are denied outright
+# (eval runs any Lua under Hyprland's Lua config, including starting programs).
 # Note: Claude Code also runs commands it recognises as read-only (uname, grep, ...).
 
 resume=()
@@ -68,4 +69,5 @@ exec claude -p "$prompt" "${resume[@]}" </dev/null \
   "Read(/$shots/**)" "Read(/$log/**)" \
   --disallowedTools \
   "Bash(sudo:*),Bash(nh os switch:*),Bash(nh os boot:*),Bash(nixos-rebuild:*),Bash(git push:*),Bash(hyprctl dispatch:*),Bash(hyprctl keyword:*)" \
+  "Bash(hyprctl eval:*),Bash(hyprctl repl:*)" \
   "Bash(systemctl start:*),Bash(systemctl restart:*),Bash(systemctl stop:*),Bash(run0:*),Bash(pkexec:*),Bash(agentos-switch:*)"

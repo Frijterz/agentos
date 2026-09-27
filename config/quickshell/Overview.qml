@@ -46,30 +46,31 @@ PanelWindow {
     // Close first, dispatch after: releasing our exclusive keyboard focus makes Hyprland
     // refocus the previous window (and jump back to its workspace), undoing a switch
     // made while we were still open.
-    property string pendingDispatch: ""
+    // Each command in both config languages (ShellState.hyprDispatch picks one).
+    property var pendingDispatch: ["", ""]
 
     Timer {
         id: dispatchLater
         interval: 60
-        onTriggered: Hyprland.dispatch(root.pendingDispatch)
+        onTriggered: ShellState.hyprDispatch(root.pendingDispatch[0], root.pendingDispatch[1])
     }
 
-    function closeThen(cmd) {
+    function closeThen(legacy, lua) {
         close();
-        pendingDispatch = cmd;
+        pendingDispatch = [legacy, lua];
         dispatchLater.restart();
     }
 
     function goTo(ws) {
-        closeThen("workspace " + ws);
+        closeThen("workspace " + ws, "hl.dsp.focus({ workspace = " + ws + " })");
     }
 
     function focusWindow(addr) {
-        closeThen("focuswindow address:0x" + addr);
+        closeThen("focuswindow address:0x" + addr, "hl.dsp.focus({ window = \"address:0x" + addr + "\" })");
     }
 
     function moveWindow(addr, ws) {
-        Hyprland.dispatch("movetoworkspacesilent " + ws + ",address:0x" + addr);
+        ShellState.hyprDispatch("movetoworkspacesilent " + ws + ",address:0x" + addr, "hl.dsp.window.move({ workspace = " + ws + ", follow = false, window = \"address:0x" + addr + "\" })");
         Hyprland.refreshToplevels();
     }
 

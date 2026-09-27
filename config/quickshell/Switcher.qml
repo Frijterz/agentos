@@ -57,7 +57,7 @@ PanelWindow {
     Timer {
         id: focusLater
         interval: 60
-        onTriggered: Hyprland.dispatch("focuswindow address:0x" + root.pendingAddress)
+        onTriggered: ShellState.hyprDispatch("focuswindow address:0x" + root.pendingAddress, "hl.dsp.focus({ window = \"address:0x" + root.pendingAddress + "\" })")
     }
     function commit() {
         if (!ShellState.switcherOpen)
