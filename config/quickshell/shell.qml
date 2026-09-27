@@ -35,6 +35,8 @@ ShellRoot {
 
     Calendar {}
 
+    Clipboard {}
+
     // Notification pop-ups (the daemon itself is the Notifs singleton).
     Toasts {}
 
@@ -86,6 +88,12 @@ ShellRoot {
         target: "calendar"
         function toggle(): void { ShellState.calendarOpen = !ShellState.calendarOpen }
         function close(): void { ShellState.calendarOpen = false }
+    }
+
+    IpcHandler {
+        target: "clipboard"
+        function toggle(): void { ShellState.clipboardOpen = !ShellState.clipboardOpen }
+        function close(): void { ShellState.clipboardOpen = false }
     }
 
     // qs ipc call background preview 0   (night; 1 day, -1 back to following the sun)

@@ -8,6 +8,7 @@
     ./weather.nix
     ./nightlight.nix
     ./terminal.nix
+    ./clipboard.nix
   ];
 
   home.username = vars.user;

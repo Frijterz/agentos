@@ -61,6 +61,12 @@ let
     "volume"
     "volume-1"
     "zap"
+    # Clipboard history
+    "clipboard"
+    "image"
+    "link"
+    "type"
+    "trash-2"
   ];
 in
 pkgs.runCommand "agentos-icons" { } ''
