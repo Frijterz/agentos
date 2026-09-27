@@ -63,7 +63,8 @@ orange, calm and barely moving.
   screensaver starts.
 
 **Apps and tools**: Ghostty with Herdr for agent sessions, Chromium with Bitwarden, rbw
-passwords (Super+P), Yazi and Thunar for files, satty to annotate screenshots, btop.
+passwords (Super+P), Yazi and Thunar for files, satty to annotate screenshots, btop, and
+Claude FM (Anthropic's lo-fi stream) as audio only through mpv (Super+R).
 
 **The laptop**: LUKS + Btrfs with snapper, both speakers with ASUS tuning, an 80% charge
 limit and s2idle suspend. No Hyprland plugins, on purpose: they break on Hyprland updates.
@@ -109,6 +110,7 @@ from Hyprland. The main ones:
 | Super + Space | Launcher (apps, `=` calculator, else ask Claude) |
 | Super + Enter / Shift | Terminal with Herdr / plain terminal (Ghostty) |
 | Super + B | Chromium |
+| Super + R | Claude FM radio on / off (also in the launcher) |
 | Super + E / Shift | Files: Yazi in the terminal / Thunar |
 | Super + P / Shift | Password: type / copy (rbw) |
 | Super + V | Clipboard history |

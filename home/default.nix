@@ -10,6 +10,7 @@
     ./terminal.nix
     ./clipboard.nix
     ./screenshots.nix
+    ./radio.nix
   ];
 
   home.username = vars.user;
