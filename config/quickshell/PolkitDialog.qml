@@ -62,11 +62,12 @@ PanelWindow {
 
             Row {
                 spacing: 10
-                Text {
-                    text: "󰌾"
-                    color: Theme.accent
-                    font.family: Theme.fontMono
-                    font.pixelSize: 20
+                LineIcon {
+                    anchors.verticalCenter: parent.verticalCenter
+                    size: 20
+                    name: "lock"
+                    tone: "accent"
+                    glyph: "󰌾"
                 }
                 Text {
                     anchors.verticalCenter: parent.verticalCenter

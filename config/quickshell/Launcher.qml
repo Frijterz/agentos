@@ -82,7 +82,7 @@ PanelWindow {
         const q = query.trim().toLowerCase();
         const out = [];
         if (calcResult)
-            out.push({ kind: "calc", title: calcResult, subtitle: "Enter copies the result", icon: "󰃬" });
+            out.push({ kind: "calc", title: calcResult, subtitle: "Enter copies the result" });
         if (!q.startsWith("=")) {
             const scored = [];
             for (const a of apps) {
@@ -95,7 +95,7 @@ PanelWindow {
                 out.push({ kind: "app", app: r.app, title: r.app.name, subtitle: r.app.genericName || r.app.comment, icon: r.app.icon });
         }
         if (q && !q.startsWith("="))
-            out.push({ kind: "claude", title: "Ask Claude: " + query.trim(), subtitle: "Opens the Claude panel and sends it", icon: "" });
+            out.push({ kind: "claude", title: "Ask Claude: " + query.trim(), subtitle: "Opens the Claude panel and sends it" });
         return out;
     }
     onResultsChanged: selected = 0
@@ -196,14 +196,14 @@ PanelWindow {
                 background: Rectangle {
                     radius: Theme.radiusSmall
                     color: Theme.alpha(Theme.fg, 0.05)
-                    Text {
+                    LineIcon {
                         anchors.left: parent.left
                         anchors.leftMargin: 16
                         anchors.verticalCenter: parent.verticalCenter
-                        text: "󰍉"
-                        color: Theme.accent
-                        font.family: Theme.fontMono
-                        font.pixelSize: 17
+                        size: 18
+                        name: "search"
+                        tone: "accent"
+                        glyph: "󰍉"
                     }
                 }
 
@@ -252,14 +252,19 @@ PanelWindow {
                                 sourceSize.height: 60
                                 smooth: true
                             }
-                            // Glyph for the calculator and Claude, or when an app has no icon.
-                            Text {
+                            // Line icon for the calculator, or when an app has no icon.
+                            LineIcon {
                                 anchors.centerIn: parent
-                                visible: !appIcon.visible
-                                text: row.modelData.kind === "app" ? "󰀻" : row.modelData.icon
-                                color: row.modelData.kind === "claude" ? Theme.claude : Theme.accent
-                                font.family: Theme.fontMono
-                                font.pixelSize: 22
+                                visible: !appIcon.visible && row.modelData.kind !== "claude"
+                                size: 22
+                                name: row.modelData.kind === "calc" ? "calculator" : "app-window"
+                                tone: "accent"
+                                glyph: row.modelData.kind === "calc" ? "󰃬" : "󰀻"
+                            }
+                            ClaudeMark {
+                                anchors.centerIn: parent
+                                visible: row.modelData.kind === "claude"
+                                size: 22
                             }
                         }
                         Column {

@@ -960,16 +960,29 @@ PanelWindow {
             }
 
             // Attached screenshot chip (click to remove).
-            Text {
+            Row {
                 visible: root.attachedShot !== ""
-                text: "󰄀  Screenshot of the active window attached  ·  remove"
-                color: Theme.alpha(Theme.fg, 0.6)
-                font.family: Theme.fontMono
-                font.pixelSize: 11
-                MouseArea {
-                    anchors.fill: parent
+                spacing: 8
+                LineIcon {
+                    anchors.verticalCenter: parent.verticalCenter
+                    size: 13
+                    name: "camera"
+                    opacity: 0.6
+                    glyph: "󰄀"
+                }
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "Screenshot of the active window attached  ·  remove"
+                    color: Theme.alpha(Theme.fg, 0.6)
+                    font.family: Theme.fontMono
+                    font.pixelSize: 11
+                }
+                // Handlers, not a MouseArea: they cover the whole Row without being laid out in it.
+                HoverHandler {
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: root.attachedShot = ""
+                }
+                TapHandler {
+                    onTapped: root.attachedShot = ""
                 }
             }
 
@@ -984,12 +997,12 @@ PanelWindow {
                 color: camArea.containsMouse ? Theme.alpha(Theme.fg, 0.12) : Theme.alpha(Theme.fg, 0.06)
                 opacity: root.busy || shotProc.running ? 0.4 : 1
 
-                Text {
+                LineIcon {
                     anchors.centerIn: parent
-                    text: "󰄀"
-                    color: root.attachedShot ? Theme.accent : Theme.fg
-                    font.family: Theme.fontMono
-                    font.pixelSize: 17
+                    size: 18
+                    name: "camera"
+                    tone: root.attachedShot ? "accent" : "fg"
+                    glyph: "󰄀"
                 }
                 MouseArea {
                     id: camArea
@@ -1030,12 +1043,12 @@ PanelWindow {
                 }
                 border.color: Theme.warn
 
-                Text {
+                LineIcon {
                     anchors.centerIn: parent
-                    text: root.transcribing ? "󰔟" : "󰍬"
-                    color: parent.recording ? Theme.warn : Theme.fg
-                    font.family: Theme.fontMono
-                    font.pixelSize: 17
+                    size: 18
+                    name: root.transcribing ? "loader" : "mic"
+                    tone: parent.recording ? "warn" : "fg"
+                    glyph: root.transcribing ? "󰔟" : "󰍬"
                 }
                 MouseArea {
                     id: micArea

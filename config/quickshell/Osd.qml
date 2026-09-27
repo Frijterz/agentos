@@ -43,7 +43,7 @@ PanelWindow {
             return;
         const m = sink.audio.muted;
         const v = sink.audio.volume;
-        show(m ? "󰖁" : v < 0.34 ? "󰕿" : v < 0.67 ? "󰖀" : "󰕾", v, m);
+        show(m ? "volume-x" : v < 0.34 ? "volume" : v < 0.67 ? "volume-1" : "volume-2", v, m);
     }
 
     PwObjectTracker {
@@ -76,7 +76,7 @@ PanelWindow {
             onStreamFinished: {
                 const pct = parseInt(text.trim().split(",")[3]);
                 if (!isNaN(pct))
-                    osd.show("󰃠", pct / 100, false);
+                    osd.show("sun", pct / 100, false);
             }
         }
     }
@@ -108,14 +108,11 @@ PanelWindow {
             anchors.centerIn: parent
             spacing: 14
 
-            Text {
-                width: 22
+            LineIcon {
                 anchors.verticalCenter: parent.verticalCenter
-                text: osd.icon
-                color: osd.muted ? Theme.warn : Theme.fg
-                font.family: Theme.fontMono
-                font.pixelSize: 18
-                horizontalAlignment: Text.AlignHCenter
+                size: 20
+                name: osd.icon
+                tone: osd.muted ? "warn" : "fg"
             }
 
             Rectangle {

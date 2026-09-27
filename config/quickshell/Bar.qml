@@ -312,19 +312,31 @@ PanelWindow {
                 }
             }
 
-            Text {
+            // Battery: a bolt while charging, red below 15% on battery.
+            Row {
                 readonly property var dev: UPower.displayDevice
                 // Quickshell reports 0–1 (verified on the UM3406).
                 readonly property real pct: dev.percentage * 100
+                readonly property bool low: UPower.onBattery && pct < 15
 
                 visible: dev.isLaptopBattery
                 anchors.verticalCenter: parent.verticalCenter
-                // Nerd Font bolt, not the ⚡ emoji: emoji keep their own (yellow) colour.
-                textFormat: Text.StyledText
-                text: (UPower.onBattery ? "" : "<font face=\"" + Theme.fontMono + "\">󱐋</font> ") + Math.round(pct) + "%"
-                color: UPower.onBattery && pct < 15 ? Theme.warn : Theme.fg
-                font.family: Theme.fontSans
-                font.pixelSize: 13
+                spacing: 3
+
+                LineIcon {
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: !UPower.onBattery
+                    size: 14
+                    name: "zap"
+                    glyph: "󱐋"
+                }
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: Math.round(parent.pct) + "%"
+                    color: parent.low ? Theme.warn : Theme.fg
+                    font.family: Theme.fontSans
+                    font.pixelSize: 13
+                }
             }
 
             // Claude button: same as Super+A.

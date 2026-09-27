@@ -52,6 +52,15 @@ let
     "cloud-lightning"
     "sunrise"
     "sunset"
+    # Launcher, Claude panel, volume pop-up, bar
+    "search"
+    "calculator"
+    "app-window"
+    "camera"
+    "loader"
+    "volume"
+    "volume-1"
+    "zap"
   ];
 in
 pkgs.runCommand "agentos-icons" { } ''
