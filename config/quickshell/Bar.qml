@@ -162,7 +162,9 @@ PanelWindow {
 
                 visible: dev.isLaptopBattery
                 anchors.verticalCenter: parent.verticalCenter
-                text: (UPower.onBattery ? "" : "⚡ ") + Math.round(pct) + "%"
+                // Nerd Font bolt, not the ⚡ emoji: emoji keep their own (yellow) colour.
+                textFormat: Text.StyledText
+                text: (UPower.onBattery ? "" : "<font face=\"" + Theme.fontMono + "\">󱐋</font> ") + Math.round(pct) + "%"
                 color: UPower.onBattery && pct < 15 ? Theme.warn : Theme.fg
                 font.family: Theme.fontSans
                 font.pixelSize: 13
