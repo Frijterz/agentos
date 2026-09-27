@@ -1,8 +1,11 @@
 # Idle chain: screensaver (4 min) → lock (10) → screen off (11) → suspend (30).
 # Full paths because systemd user services don't get your shell's PATH.
-{ pkgs, ... }:
+{ config, pkgs, ... }:
 let
   qs = "${pkgs.quickshell}/bin/qs";
+  c = config.lib.stylix.colors;
+  mono = config.stylix.fonts.monospace.name;
+  weatherFile = "${config.xdg.stateHome}/agentos/weather.json";
   hyprctl = "${pkgs.hyprland}/bin/hyprctl";
   loginctl = "${pkgs.systemd}/bin/loginctl";
   systemctl = "${pkgs.systemd}/bin/systemctl";
@@ -39,7 +42,9 @@ in
     };
   };
 
-  # Stylix styles the background and input field; we add a big clock.
+  # Mission Control lock screen, matching the screensaver: amber clock, date, weather
+  # (home/weather.nix), square input field. Styled here, so Stylix's version is off.
+  stylix.targets.hyprlock.enable = false;
   programs.hyprlock = {
     enable = true;
     settings = {
@@ -47,13 +52,70 @@ in
         hide_cursor = true;
         ignore_empty_input = true;
       };
+      background = [
+        {
+          monitor = "";
+          color = "rgb(${c.base00})";
+        }
+      ];
       label = [
         {
+          text = "MISSION CONTROL  ·  AUTHORIZATION REQUIRED";
+          color = "rgba(${c.base0D}99)";
+          font_family = mono;
+          font_size = 12;
+          position = "0, 290";
+          halign = "center";
+          valign = "center";
+        }
+        {
           text = "$TIME";
-          font_size = 110;
+          color = "rgba(${c.base0D}dd)";
+          font_family = mono;
+          font_size = 112;
           position = "0, 180";
           halign = "center";
           valign = "center";
+        }
+        {
+          text = ''cmd[update:60000] ${pkgs.coreutils}/bin/date +"%A %-d %B %Y" | ${pkgs.coreutils}/bin/tr a-z A-Z'';
+          color = "rgba(${c.base05}88)";
+          font_family = mono;
+          font_size = 14;
+          position = "0, 70";
+          halign = "center";
+          valign = "center";
+        }
+        {
+          text = ''cmd[update:600000] ${pkgs.jq}/bin/jq -r '"\(.place)  ·  \(.temp)°C  ·  \(.desc)" | ascii_upcase' ${weatherFile} 2>/dev/null'';
+          color = "rgba(${c.base05}66)";
+          font_family = mono;
+          font_size = 12;
+          position = "0, 38";
+          halign = "center";
+          valign = "center";
+        }
+      ];
+      input-field = [
+        {
+          monitor = "";
+          size = "340, 48";
+          position = "0, -110";
+          halign = "center";
+          valign = "center";
+          rounding = 0;
+          outline_thickness = 1;
+          outer_color = "rgba(${c.base0D}aa)";
+          inner_color = "rgb(${c.base01})";
+          font_color = "rgb(${c.base05})";
+          font_family = mono;
+          check_color = "rgb(${c.base0A})";
+          fail_color = "rgb(${c.base08})";
+          fail_text = "ACCESS DENIED  ($ATTEMPTS)";
+          placeholder_text = "ENTER PASSPHRASE";
+          dots_size = 0.2;
+          dots_spacing = 0.4;
+          fade_on_empty = false;
         }
       ];
     };
