@@ -6,6 +6,7 @@
     ./idle.nix
     ./apps.nix
     ./weather.nix
+    ./nightlight.nix
   ];
 
   home.username = vars.user;
