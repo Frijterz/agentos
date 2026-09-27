@@ -33,6 +33,8 @@ ShellRoot {
 
     SystemMenu {}
 
+    Calendar {}
+
     // Notification pop-ups (the daemon itself is the Notifs singleton).
     Toasts {}
 
@@ -78,6 +80,12 @@ ShellRoot {
         function open(): void { ShellState.claudeOpen = true }
         function close(): void { ShellState.claudeOpen = false }
         function isOpen(): bool { return ShellState.claudeOpen }
+    }
+
+    IpcHandler {
+        target: "calendar"
+        function toggle(): void { ShellState.calendarOpen = !ShellState.calendarOpen }
+        function close(): void { ShellState.calendarOpen = false }
     }
 
     // qs ipc call monitor toggle  (Super+Shift+Escape, or click the bar's telemetry)

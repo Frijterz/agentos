@@ -166,13 +166,55 @@ PanelWindow {
             precision: SystemClock.Minutes
         }
 
-        Text {
+        // Date, time and the outside temperature; click for the calendar.
+        Rectangle {
             anchors.centerIn: parent
-            text: Qt.formatDateTime(clock.date, "ddd d MMM   HH:mm")
-            color: Theme.fg
-            font.family: Theme.fontSans
-            font.pixelSize: 14
-            font.weight: Font.DemiBold
+            width: clockRow.implicitWidth + 24
+            height: 30
+            radius: 15
+            color: ShellState.calendarOpen ? Theme.alpha(Theme.accent, 0.25) : clockHover.hovered ? Theme.alpha(Theme.fg, 0.1) : "transparent"
+
+            Row {
+                id: clockRow
+                anchors.centerIn: parent
+                spacing: 16
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: Qt.formatDateTime(clock.date, "ddd d MMM   HH:mm")
+                    color: Theme.fg
+                    font.family: Theme.fontSans
+                    font.pixelSize: 14
+                    font.weight: Font.DemiBold
+                }
+                // Hidden when the reading is over 3 hours old (offline).
+                Row {
+                    visible: Weather.fresh
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 6
+                    LineIcon {
+                        anchors.verticalCenter: parent.verticalCenter
+                        size: 16
+                        name: Weather.icon(Weather.data?.code, Weather.isNight(clock.date))
+                        opacity: 0.8
+                    }
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: (Weather.data?.temp ?? "") + "°"
+                        color: Theme.alpha(Theme.fg, 0.85)
+                        font.family: Theme.fontSans
+                        font.pixelSize: 14
+                    }
+                }
+            }
+
+            HoverHandler {
+                id: clockHover
+                cursorShape: Qt.PointingHandCursor
+            }
+            TapHandler {
+                onTapped: ShellState.calendarOpen = !ShellState.calendarOpen
+            }
         }
 
         // ── Right side ──

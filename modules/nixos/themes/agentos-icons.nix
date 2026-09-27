@@ -39,6 +39,19 @@ let
     "chevron-down"
     "chevron-up"
     "x"
+    # Calendar and weather (sun and moon are above)
+    "chevron-left"
+    "chevron-right"
+    "cloud"
+    "cloud-sun"
+    "cloud-moon"
+    "cloud-fog"
+    "cloud-drizzle"
+    "cloud-rain"
+    "cloud-snow"
+    "cloud-lightning"
+    "sunrise"
+    "sunset"
   ];
 in
 pkgs.runCommand "agentos-icons" { } ''

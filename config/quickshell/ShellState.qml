@@ -13,6 +13,7 @@ Singleton {
     property bool overviewOpen: false
     property bool systemOpen: false
     property bool launcherOpen: false
+    property bool calendarOpen: false
     // A question for the Claude panel (from the launcher's "Ask Claude"); it sends it.
     property string claudeQuestion: ""
 

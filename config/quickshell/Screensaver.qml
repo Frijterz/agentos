@@ -1,6 +1,5 @@
 import QtQuick
 import Quickshell
-import Quickshell.Io
 import Quickshell.Wayland
 
 // Mission Control standby screen: true black (OLED), with one console block fading in
@@ -57,18 +56,7 @@ PanelWindow {
     }
 
     // Weather from agentos-weather (home/weather.nix), refreshed every 30 minutes.
-    property var weather: null
-    FileView {
-        path: (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state") + "/agentos/weather.json"
-        watchChanges: true
-        printErrors: false
-        onFileChanged: reload()
-        onLoaded: {
-            try {
-                root.weather = JSON.parse(text());
-            } catch (e) {}
-        }
-    }
+    readonly property var weather: Weather.data
 
     SystemClock {
         id: clock
