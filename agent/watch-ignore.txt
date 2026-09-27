@@ -26,3 +26,7 @@ fuzzel.*failed to acquire lock: fuzzel already running
 # dropped the link mid-playback; PipeWire marks the dead output node as errored and
 # moves on. Reconnecting creates a fresh node.
 pw\.node: \(bluez_output\.[^)]*\) running -> error \(Received error event\)
+# The same headset dropout seen by BlueZ and the kernel: the call-audio (HFP) link was
+# already gone when BlueZ asked about it, and a last packet arrived for the closed link.
+ext_io_disconnected\(\) Unable to get io data for Hands-Free Voice gateway: getpeername: Transport endpoint is not connected
+Bluetooth: hci0: ACL packet for unknown connection handle
