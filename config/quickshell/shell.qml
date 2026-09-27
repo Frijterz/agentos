@@ -80,6 +80,12 @@ ShellRoot {
         function isOpen(): bool { return ShellState.claudeOpen }
     }
 
+    // qs ipc call monitor toggle  (Super+Shift+Escape, or click the bar's telemetry)
+    IpcHandler {
+        target: "monitor"
+        function toggle(): void { Telemetry.toggleMonitor() }
+    }
+
     // qs ipc call screensaver start|stop  (hypridle)
     IpcHandler {
         target: "screensaver"

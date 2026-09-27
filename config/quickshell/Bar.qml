@@ -6,7 +6,7 @@ import Quickshell.Services.Pipewire
 import Quickshell.Services.UPower
 import Quickshell.Wayland
 
-// Floating translucent pill bar: workspaces · clock · battery + Claude.
+// Floating translucent pill bar: workspaces · telemetry · clock · status, battery + Claude.
 PanelWindow {
     id: bar
 
@@ -45,6 +45,7 @@ PanelWindow {
 
         // ── Workspaces: at least 5 dots, more if you use them ──
         Row {
+            id: workspaces
             anchors.left: parent.left
             anchors.leftMargin: 16
             anchors.verticalCenter: parent.verticalCenter
@@ -81,6 +82,81 @@ PanelWindow {
                         onClicked: Hyprland.dispatch("workspace " + dot.wsId)
                     }
                 }
+            }
+        }
+
+        // ── Telemetry: dim labels, values in paper white, red past the limits.
+        // Click to open / close btop (Super+Shift+Escape). ──
+        Row {
+            id: telemetry
+
+            component Reading: Row {
+                id: reading
+                property string label
+                property string value
+                property bool alarm
+                property string widest // reserve this width, so changing values don't shift the row
+                spacing: 5
+                TextMetrics {
+                    id: widestMetrics
+                    font: valueText.font
+                    text: reading.widest
+                }
+                Text {
+                    text: parent.label
+                    color: Theme.alpha(Theme.fg, 0.4)
+                    font.family: Theme.fontMono
+                    font.pixelSize: 10
+                    font.letterSpacing: 1
+                    anchors.baseline: valueText.baseline
+                }
+                Text {
+                    id: valueText
+                    width: Math.max(implicitWidth, widestMetrics.advanceWidth)
+                    text: parent.value
+                    color: parent.alarm ? Theme.warn : Theme.alpha(Theme.fg, 0.8)
+                    font.family: Theme.fontMono
+                    font.pixelSize: 12
+                }
+            }
+
+            anchors.left: workspaces.right
+            anchors.leftMargin: 22
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 14
+
+            Reading {
+                label: "CPU"
+                widest: "100%"
+                value: Math.round(Telemetry.cpu * 100) + "%"
+                alarm: Telemetry.cpu > 0.9
+            }
+            Reading {
+                visible: Telemetry.temp > 0
+                label: "TMP"
+                widest: "100°"
+                value: Math.round(Telemetry.temp) + "°"
+                alarm: Telemetry.temp >= 90
+            }
+            Reading {
+                label: "MEM"
+                widest: "30.0G"
+                value: Telemetry.memUsed.toFixed(1) + "G"
+                alarm: Telemetry.memTotal > 0 && Telemetry.memUsed / Telemetry.memTotal > 0.9
+            }
+            Reading {
+                visible: UPower.onBattery && Telemetry.watts > 0
+                label: "PWR"
+                widest: "30.0W"
+                value: Telemetry.watts.toFixed(1) + "W"
+                alarm: Telemetry.watts > 25
+            }
+
+            HoverHandler {
+                cursorShape: Qt.PointingHandCursor
+            }
+            TapHandler {
+                onTapped: Telemetry.toggleMonitor()
             }
         }
 
