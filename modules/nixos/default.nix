@@ -7,6 +7,7 @@
     ./desktop.nix
     ./theming.nix
     ./snapshots.nix
+    ./backup.nix
     ./agent.nix
     ./home-manager.nix
   ];

@@ -74,6 +74,17 @@ check() {
     fi
   fi
 
+  # Off-laptop backup (modules/nixos/backup.nix): stale after 3 days. No file yet means
+  # backups aren't set up (or never succeeded), which docs/BACKUP.md covers.
+  last_ok=/var/lib/agentos/backup-last-ok
+  if [ -f "$last_ok" ]; then
+    age=$((($(date +%s) - $(stat -c %Y "$last_ok")) / 86400))
+    if [ "$age" -ge 3 ]; then
+      add "backup-stale:$age" "Last backup was $age days ago" \
+        "$(systemctl status restic-backups-home.service --no-pager -n 6 2>&1 | tail -n 8 || true)"
+    fi
+  fi
+
   # Disk space.
   df --output=target,pcent / /home | tail -n +2 | while read -r mnt pct; do
     pct="${pct%\%}"
