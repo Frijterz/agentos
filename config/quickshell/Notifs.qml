@@ -75,6 +75,11 @@ Singleton {
 
         onNotification: n => {
             n.tracked = true;
+            // Kept across a shell reload (keepOnReload): it's already in the history, so
+            // no pop-up, sound or unread count again. Without this, every config reload
+            // re-announced old notifications (seen as repeat pop-ups while editing).
+            if (n.lastGeneration)
+                return;
             const a = Object.assign({}, root.arrived);
             a[n.id] = Date.now();
             root.arrived = a;
