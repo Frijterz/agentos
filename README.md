@@ -10,7 +10,7 @@
   Hyprland + Quickshell, a retro Mission Control look, and Claude built into the shell.
 </p>
 
-![The agentOS desktop: telemetry bar and the orbital wallpaper](docs/screenshots/1-desktop.webp)
+![The agentOS desktop at night: telemetry bar, the orbital wallpaper and Claude FM playing](docs/screenshots/1-desktop.webp)
 
 | | |
 |---|---|
