@@ -33,12 +33,12 @@ Item {
         fillMode: Image.PreserveAspectFit
         smooth: true
     }
-    Text {
+    LineIcon {
         anchors.centerIn: parent
         visible: !picture.visible
-        text: "󰂚"
-        color: Theme.accent
-        font.family: Theme.fontMono
-        font.pixelSize: root.size * 0.6
+        size: root.size * 0.6
+        name: "bell"
+        tone: "accent"
+        glyph: "󰂚"
     }
 }

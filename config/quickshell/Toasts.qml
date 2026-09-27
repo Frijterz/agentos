@@ -163,14 +163,14 @@ PanelWindow {
                 }
 
                 // Close: gone from the pop-ups and the history.
-                Text {
+                LineIcon {
                     anchors.top: parent.top
                     anchors.right: parent.right
                     anchors.margins: 8
-                    text: "󰅖"
-                    color: closeArea.containsMouse ? Theme.fg : Theme.alpha(Theme.fg, 0.4)
-                    font.family: Theme.fontMono
-                    font.pixelSize: 14
+                    size: 14
+                    name: "x"
+                    opacity: closeArea.containsMouse ? 1 : 0.4
+                    glyph: "󰅖"
                     MouseArea {
                         id: closeArea
                         anchors.fill: parent

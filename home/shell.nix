@@ -20,6 +20,12 @@ let
     };
   } ''sed 's/<path /<path fill="#D97757" /' "$src" > "$out"'';
 
+  # Line icons (Lucide, in the palette) for the bar and the system menu.
+  icons = import ../modules/nixos/themes/agentos-icons.nix {
+    inherit pkgs;
+    colors = osConfig.lib.stylix.colors;
+  };
+
   # UI sounds for notifications (and the lock screen, home/idle.nix).
   sounds = import ../modules/nixos/themes/agentos-sounds.nix { inherit pkgs; };
 
@@ -61,6 +67,7 @@ in
     claudeIcon = "${claudeIcon}";
     logoDir = "${logo}";
     soundDir = "${sounds}";
+    iconDir = "${icons}";
   };
 
   systemd.user.services.quickshell = {

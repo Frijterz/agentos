@@ -48,6 +48,10 @@ PanelWindow {
     function wifiIcon(strength) {
         return strength > 0.75 ? "󰤨" : strength > 0.5 ? "󰤥" : strength > 0.25 ? "󰤢" : "󰤟";
     }
+    // Same thresholds as the bar's Wi-Fi indicator.
+    function wifiLine(strength) {
+        return strength > 0.66 ? "wifi" : strength > 0.4 ? "wifi-high" : strength > 0.15 ? "wifi-low" : "wifi-zero";
+    }
     function needsPassword(n) {
         return n.security !== WifiSecurityType.Open && n.security !== WifiSecurityType.Owe;
     }
@@ -150,7 +154,8 @@ PanelWindow {
     component Tile: Rectangle {
         id: tile
 
-        property string icon
+        property string icon // Nerd Font glyph, fallback until the line icons are installed
+        property string line // Lucide icon name (Theme.icon)
         property string title
         property string subtitle
         property bool lit // switched on
@@ -175,12 +180,13 @@ PanelWindow {
             anchors.verticalCenter: parent.verticalCenter
             spacing: 10
 
-            Text {
+            LineIcon {
                 anchors.verticalCenter: parent.verticalCenter
-                text: tile.icon
-                color: tile.lit ? Theme.accent : Theme.alpha(Theme.fg, 0.5)
-                font.family: Theme.fontMono
-                font.pixelSize: 18
+                size: 20
+                name: tile.line
+                tone: tile.lit ? "accent" : "fg"
+                opacity: tile.lit ? 1 : 0.5
+                glyph: tile.icon
             }
             Column {
                 anchors.verticalCenter: parent.verticalCenter
@@ -202,18 +208,19 @@ PanelWindow {
             }
         }
         // Chevron: show the list of networks / devices.
-        Text {
+        Item {
             anchors.right: parent.right
             anchors.rightMargin: 4
             anchors.verticalCenter: parent.verticalCenter
             width: 30
             height: parent.height
-            horizontalAlignment: Text.AlignHCenter
-            verticalAlignment: Text.AlignVCenter
-            text: tile.expanded ? "󰅃" : "󰅀"
-            color: Theme.alpha(Theme.fg, 0.6)
-            font.family: Theme.fontMono
-            font.pixelSize: 14
+            LineIcon {
+                anchors.centerIn: parent
+                size: 16
+                name: tile.expanded ? "chevron-up" : "chevron-down"
+                opacity: 0.6
+                glyph: tile.expanded ? "󰅃" : "󰅀"
+            }
             MouseArea {
                 anchors.fill: parent
                 cursorShape: Qt.PointingHandCursor
@@ -225,7 +232,8 @@ PanelWindow {
     component SliderRow: Row {
         id: slider
 
-        property string icon
+        property string icon // glyph fallback
+        property string line // Lucide icon name
         property real value
         property bool muted
         property bool mutable: true
@@ -235,14 +243,17 @@ PanelWindow {
         spacing: 12
         height: 28
 
-        Text {
+        Item {
             anchors.verticalCenter: parent.verticalCenter
             width: 22
-            horizontalAlignment: Text.AlignHCenter
-            text: slider.icon
-            color: slider.muted ? Theme.warn : Theme.fg
-            font.family: Theme.fontMono
-            font.pixelSize: 17
+            height: 22
+            LineIcon {
+                anchors.centerIn: parent
+                size: 19
+                name: slider.line
+                tone: slider.muted ? "warn" : "fg"
+                glyph: slider.icon
+            }
             MouseArea {
                 anchors.fill: parent
                 anchors.margins: -6
@@ -301,9 +312,11 @@ PanelWindow {
     component ListItem: Rectangle {
         id: item
 
-        property string icon
+        property string icon // glyph fallback
+        property string line // Lucide icon name
         property string label
         property string detail
+        property bool secured // a password-protected network: small lock after the detail
         property bool active
         signal clicked
 
@@ -317,12 +330,13 @@ PanelWindow {
             anchors.leftMargin: 10
             anchors.verticalCenter: parent.verticalCenter
             spacing: 10
-            Text {
-                width: 18
-                text: item.icon
-                color: item.active ? Theme.accent : Theme.alpha(Theme.fg, 0.6)
-                font.family: Theme.fontMono
-                font.pixelSize: 14
+            LineIcon {
+                anchors.verticalCenter: parent.verticalCenter
+                size: 16
+                name: item.line
+                tone: item.active ? "accent" : "fg"
+                opacity: item.active ? 1 : 0.6
+                glyph: item.icon
             }
             Text {
                 width: item.width - 150
@@ -333,14 +347,26 @@ PanelWindow {
                 font.pixelSize: 13
             }
         }
-        Text {
+        Row {
             anchors.right: parent.right
             anchors.rightMargin: 10
             anchors.verticalCenter: parent.verticalCenter
-            text: item.detail
-            color: Theme.alpha(Theme.fg, 0.5)
-            font.family: Theme.fontMono
-            font.pixelSize: 11
+            spacing: 6
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: item.detail
+                color: Theme.alpha(Theme.fg, 0.5)
+                font.family: Theme.fontMono
+                font.pixelSize: 11
+            }
+            LineIcon {
+                anchors.verticalCenter: parent.verticalCenter
+                visible: item.secured
+                size: 12
+                name: "lock"
+                opacity: 0.5
+                glyph: "󰌾"
+            }
         }
         MouseArea {
             id: area
@@ -397,6 +423,7 @@ PanelWindow {
                 Tile {
                     width: (parent.width - 10) / 2
                     icon: !Networking.wifiEnabled ? "󰤭" : root.connectedNetwork ? root.wifiIcon(root.connectedNetwork.signalStrength) : "󰤯"
+                    line: !Networking.wifiEnabled ? "wifi-off" : root.connectedNetwork ? root.wifiLine(root.connectedNetwork.signalStrength) : "wifi-zero"
                     title: "Wi-Fi"
                     subtitle: !Networking.wifiEnabled ? "Off" : root.connectedNetwork ? root.connectedNetwork.name : "Not connected"
                     lit: Networking.wifiEnabled
@@ -411,6 +438,7 @@ PanelWindow {
                     readonly property var connected: root.btDevices.filter(d => d.connected)
                     width: (parent.width - 10) / 2
                     icon: !root.adapter?.enabled ? "󰂲" : connected.length ? "󰂱" : "󰂯"
+                    line: !root.adapter?.enabled ? "bluetooth-off" : connected.length ? "bluetooth-connected" : "bluetooth"
                     title: "Bluetooth"
                     subtitle: !root.adapter ? "No adapter" : !root.adapter.enabled ? "Off" : connected.length ? connected.map(d => d.name).join(", ") : "On"
                     lit: root.adapter?.enabled ?? false
@@ -442,8 +470,10 @@ PanelWindow {
                     delegate: ListItem {
                         required property var modelData
                         icon: root.wifiIcon(modelData.signalStrength)
+                        line: root.wifiLine(modelData.signalStrength)
                         label: modelData.name
-                        detail: (modelData.connected ? "connected" : modelData.known ? "saved" : "") + (root.needsPassword(modelData) ? "  󰌾" : "")
+                        detail: modelData.connected ? "connected" : modelData.known ? "saved" : ""
+                        secured: root.needsPassword(modelData)
                         active: modelData.connected
                         onClicked: root.connectTo(modelData)
                     }
@@ -516,6 +546,7 @@ PanelWindow {
                     delegate: ListItem {
                         required property var modelData
                         icon: modelData.connected ? "󰂱" : "󰂯"
+                        line: modelData.connected ? "bluetooth-connected" : "bluetooth"
                         label: modelData.name || modelData.address
                         detail: (modelData.batteryAvailable ? Math.round(modelData.battery * 100) + "%  " : "") + (modelData.connected ? "connected" : modelData.pairing ? "pairing…" : modelData.paired ? "paired" : "new")
                         active: modelData.connected
@@ -531,10 +562,10 @@ PanelWindow {
 
                 Repeater {
                     model: [
-                        { id: "normal", icon: "󰾅", label: "Normal" },
-                        { id: "battery", icon: "󰂃", label: "Battery" },
-                        { id: "presentation", icon: "󰐯", label: "Present" },
-                        { id: "focus", icon: "󰂛", label: "Focus" }
+                        { id: "normal", line: "orbit", icon: "󰾅", label: "Normal" },
+                        { id: "battery", line: "battery-low", icon: "󰂃", label: "Battery" },
+                        { id: "presentation", line: "presentation", icon: "󰐯", label: "Present" },
+                        { id: "focus", line: "focus", icon: "󰂛", label: "Focus" }
                     ]
 
                     delegate: Rectangle {
@@ -551,11 +582,12 @@ PanelWindow {
                         Row {
                             anchors.centerIn: parent
                             spacing: 6
-                            Text {
-                                text: modelData.icon
-                                color: parent.parent.current ? Theme.accent : Theme.fg
-                                font.family: Theme.fontMono
-                                font.pixelSize: 14
+                            LineIcon {
+                                anchors.verticalCenter: parent.verticalCenter
+                                size: 15
+                                name: modelData.line
+                                tone: parent.parent.current ? "accent" : "fg"
+                                glyph: modelData.icon
                             }
                             Text {
                                 text: modelData.label
@@ -588,6 +620,7 @@ PanelWindow {
             SliderRow {
                 width: parent.width
                 icon: root.sink?.audio?.muted ? "󰖁" : "󰕾"
+                line: root.sink?.audio?.muted ? "volume-x" : "volume-2"
                 value: root.sink?.audio?.volume ?? 0
                 muted: root.sink?.audio?.muted ?? false
                 onMoved: v => {
@@ -601,6 +634,7 @@ PanelWindow {
             SliderRow {
                 width: parent.width
                 icon: root.source?.audio?.muted ? "󰍭" : "󰍬"
+                line: root.source?.audio?.muted ? "mic-off" : "mic"
                 value: root.source?.audio?.volume ?? 0
                 muted: root.source?.audio?.muted ?? false
                 // Above ~30% the built-in mic clips (Mic Boost): see zenbook-um3406.nix.
@@ -615,6 +649,7 @@ PanelWindow {
             SliderRow {
                 width: parent.width
                 icon: "󰃠"
+                line: "sun"
                 mutable: false
                 value: root.brightness
                 onMoved: v => root.setBrightness(v)
@@ -729,15 +764,15 @@ PanelWindow {
                             font.family: Theme.fontMono
                             font.pixelSize: 10
                         }
-                        Text {
+                        LineIcon {
                             id: dismissIcon
                             anchors.right: parent.right
                             anchors.rightMargin: 8
                             anchors.verticalCenter: parent.verticalCenter
-                            text: "󰅖"
-                            color: Theme.alpha(Theme.fg, 0.45)
-                            font.family: Theme.fontMono
-                            font.pixelSize: 13
+                            size: 14
+                            name: "x"
+                            opacity: 0.45
+                            glyph: "󰅖"
                             MouseArea {
                                 anchors.fill: parent
                                 anchors.margins: -6
@@ -762,11 +797,11 @@ PanelWindow {
 
                 Repeater {
                     model: [
-                        { id: "lock", icon: "󰌾", label: "Lock", command: ["loginctl", "lock-session"], confirm: false },
-                        { id: "sleep", icon: "󰒲", label: "Sleep", command: ["systemctl", "suspend"], confirm: false },
-                        { id: "logout", icon: "󰍃", label: "Log out", command: ["uwsm", "stop"], confirm: true },
-                        { id: "reboot", icon: "󰜉", label: "Restart", command: ["systemctl", "reboot"], confirm: true },
-                        { id: "poweroff", icon: "󰐥", label: "Shut down", command: ["systemctl", "poweroff"], confirm: true }
+                        { id: "lock", line: "lock", icon: "󰌾", label: "Lock", command: ["loginctl", "lock-session"], confirm: false },
+                        { id: "sleep", line: "moon", icon: "󰒲", label: "Sleep", command: ["systemctl", "suspend"], confirm: false },
+                        { id: "logout", line: "log-out", icon: "󰍃", label: "Log out", command: ["uwsm", "stop"], confirm: true },
+                        { id: "reboot", line: "rotate-cw", icon: "󰜉", label: "Restart", command: ["systemctl", "reboot"], confirm: true },
+                        { id: "poweroff", line: "power", icon: "󰐥", label: "Shut down", command: ["systemctl", "poweroff"], confirm: true }
                     ]
 
                     delegate: Rectangle {
@@ -781,12 +816,12 @@ PanelWindow {
                         border.width: asking ? 1 : 0
                         border.color: Theme.warn
 
-                        Text {
+                        LineIcon {
                             anchors.centerIn: parent
-                            text: modelData.icon
-                            color: parent.asking ? Theme.warn : Theme.fg
-                            font.family: Theme.fontMono
-                            font.pixelSize: 24
+                            size: 22
+                            name: modelData.line
+                            tone: parent.asking ? "warn" : "fg"
+                            glyph: modelData.icon
                         }
                         MouseArea {
                             id: powerArea

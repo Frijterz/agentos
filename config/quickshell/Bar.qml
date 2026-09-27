@@ -126,28 +126,62 @@ PanelWindow {
                 Row {
                     id: statusRow
                     anchors.centerIn: parent
-                    spacing: 9
+                    spacing: 11
 
-                    Text {
-                        readonly property var w: parent.parent.wifi
-                        text: !Networking.wifiEnabled ? "󰤭" : !w ? "󰤯" : w.signalStrength > 0.75 ? "󰤨" : w.signalStrength > 0.5 ? "󰤥" : w.signalStrength > 0.25 ? "󰤢" : "󰤟"
-                        color: Theme.fg
-                        font.family: Theme.fontMono
-                        font.pixelSize: 17 // same as the Claude mark
+                    // Wi-Fi as a signal indicator: all arcs dim, the ones your signal
+                    // reaches lit on top (Lucide line icons, 17 px like the Claude mark).
+                    Item {
+                        readonly property var w: statusButton.wifi
+                        readonly property real s: w?.signalStrength ?? 0
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 17
+                        height: 17
+
+                        LineIcon {
+                            anchors.fill: parent
+                            visible: Networking.wifiEnabled
+                            size: 17
+                            name: "wifi"
+                            opacity: 0.25
+                        }
+                        LineIcon {
+                            anchors.fill: parent
+                            size: 17
+                            name: !Networking.wifiEnabled ? "wifi-off" : !parent.w ? "wifi-zero" : parent.s > 0.66 ? "wifi" : parent.s > 0.4 ? "wifi-high" : parent.s > 0.15 ? "wifi-low" : "wifi-zero"
+                            glyph: !Networking.wifiEnabled ? "󰤭" : "󰤨"
+                        }
                     }
-                    // Notifications: dot = unread, crossed out = do not disturb (mode).
-                    Text {
-                        text: Notifs.dnd ? "󰂛" : Notifs.unread > 0 ? "󰂞" : "󰂚"
-                        color: Notifs.unread > 0 && !Notifs.dnd ? Theme.accent : Theme.fg
-                        font.family: Theme.fontMono
-                        font.pixelSize: 17
+
+                    // Notifications: dot = unread (orange), crossed out = do not disturb.
+                    LineIcon {
+                        anchors.verticalCenter: parent.verticalCenter
+                        size: 17
+                        name: Notifs.dnd ? "bell-off" : Notifs.unread > 0 ? "bell-dot" : "bell"
+                        tone: Notifs.unread > 0 && !Notifs.dnd ? "accent" : "fg"
+                        glyph: Notifs.dnd ? "󰂛" : "󰂚"
                     }
-                    Text {
-                        readonly property var a: parent.parent.sink?.audio
-                        text: !a || a.muted ? "󰖁" : a.volume > 0.5 ? "󰕾" : a.volume > 0 ? "󰖀" : "󰕿"
-                        color: a?.muted ? Theme.warn : Theme.fg
-                        font.family: Theme.fontMono
-                        font.pixelSize: 17
+
+                    // Volume as a VU meter: four segments stacked, lit from the bottom up
+                    // to the volume; dim red when muted.
+                    Column {
+                        readonly property var a: statusButton.sink?.audio
+                        readonly property real v: a?.volume ?? 0
+                        readonly property bool muted: !a || a.muted
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 2
+
+                        Repeater {
+                            model: 4
+                            delegate: Rectangle {
+                                required property int index
+                                readonly property int level: 3 - index // top segment = loudest
+                                readonly property bool lit: !parent.muted && parent.v > level * 0.25 + 0.001
+                                width: 11
+                                height: 2.5
+                                radius: 1
+                                color: parent.muted ? Theme.alpha(Theme.warn, 0.55) : lit ? Theme.fg : Theme.alpha(Theme.fg, 0.22)
+                            }
+                        }
                     }
                 }
 

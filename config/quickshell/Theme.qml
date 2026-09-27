@@ -29,6 +29,13 @@ Singleton {
 
     // agentOS logo images (modules/nixos/themes/agentos-logo.nix); "" until the rebuild.
     readonly property string logoDir: scheme.logoDir ?? ""
+    // Line icons (modules/nixos/themes/agentos-icons.nix): icon("power", "warn").
+    // tone: "fg" | "accent" | "warn". "" until the rebuild; callers keep a glyph fallback.
+    readonly property string iconDir: scheme.iconDir ?? ""
+    function icon(name, tone) {
+        return iconDir ? "file://" + iconDir + "/" + name + "-" + (tone || "fg") + ".svg" : "";
+    }
+
     // UI sounds (modules/nixos/themes/agentos-sounds.nix); "" until the rebuild.
     readonly property string soundDir: scheme.soundDir ?? ""
     function logo(name) {
