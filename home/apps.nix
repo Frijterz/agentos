@@ -15,6 +15,12 @@
     # Herdr's Claude hook (~/.claude/hooks/herdr-agent-state.sh) is Python: without it
     # Herdr can't match panes to Claude sessions or restore them after a reboot.
     python3
+    # Bitwarden (Mac, iPhone and here): rbw is a small native CLI client instead of the
+    # ~490 MiB Electron app; the Chromium extension (modules/nixos/desktop.nix) covers
+    # the browser. The account email is set with `rbw config set email …` (kept out of
+    # this public repo); rbw asks for the master password with pinentry-gnome3.
+    rbw
+    pinentry-gnome3
   ];
 
   # Links and web files open in Chromium (Super+B).
