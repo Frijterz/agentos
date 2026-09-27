@@ -69,6 +69,27 @@ PanelWindow {
     readonly property var btDevices: (adapter?.devices.values ?? []).filter(d => d.paired || d.name).slice().sort((a, b) => (b.connected - a.connected) || (b.paired - a.paired))
     property bool btExpanded: false
 
+    // The tile switches the adapter; a blocked radio switch (rfkill: airplane mode, or
+    // "off" restored at boot) has to be lifted first, which your session may do itself.
+    Process {
+        id: btUnblock
+        command: ["rfkill", "unblock", "bluetooth"]
+        onExited: btEnable.restart()
+    }
+    Timer {
+        id: btEnable
+        interval: 400 // BlueZ needs a moment to see the switch lifted
+        onTriggered: if (root.adapter) root.adapter.enabled = true
+    }
+    function toggleBluetooth() {
+        if (!adapter)
+            return;
+        if (adapter.state === BluetoothAdapterState.Blocked)
+            btUnblock.running = true;
+        else
+            adapter.enabled = !adapter.enabled;
+    }
+
     // ── Sound (PipeWire) and brightness (brightnessctl) ──
     readonly property var sink: Pipewire.defaultAudioSink
     readonly property var source: Pipewire.defaultAudioSource
@@ -443,7 +464,7 @@ PanelWindow {
                     subtitle: !root.adapter ? "No adapter" : !root.adapter.enabled ? "Off" : connected.length ? connected.map(d => d.name).join(", ") : "On"
                     lit: root.adapter?.enabled ?? false
                     expanded: root.btExpanded
-                    onToggled: if (root.adapter) root.adapter.enabled = !root.adapter.enabled
+                    onToggled: root.toggleBluetooth()
                     onExpandToggled: {
                         root.btExpanded = !root.btExpanded;
                         root.wifiExpanded = false;
