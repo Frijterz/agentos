@@ -47,7 +47,14 @@ PanelWindow {
     // the transcription (local whisper.cpp, ~4 s for a short sentence). ──
     property bool transcribing: false
 
+    function takeShot() {
+        if (!busy && !shotProc.running)
+            shotProc.running = true;
+    }
+
     function toggleDictation() {
+        if (busy || transcribing)
+            return;
         if (!dictateProc.running) {
             transcribing = false;
             dictateProc.running = true;
@@ -92,8 +99,37 @@ PanelWindow {
             attachedShot = "";
         }
         busy = true;
+        list.follow = true; // a new question: follow the answer again
+        askStarted = Date.now();
         ask.command = sessionId ? ["agentos-ask", "--resume", sessionId, prompt] : ["agentos-ask", prompt];
         ask.running = true;
+    }
+
+    // ── "Claude is done" notification, when a reply finishes while the panel is closed ──
+    property real askStarted: 0
+
+    function lastReply() {
+        for (let i = messages.count - 1; i >= 0; i--)
+            if (messages.get(i).who === "claude")
+                return messages.get(i).body;
+        return "";
+    }
+
+    function notifyDone(failed) {
+        const secs = Math.round((Date.now() - askStarted) / 1000);
+        const took = secs < 60 ? secs + " s" : Math.floor(secs / 60) + " min " + (secs % 60) + " s";
+        // First line of the answer, without Markdown symbols.
+        const first = lastReply().replace(/[#*_`>]/g, "").split("\n").map(l => l.trim()).find(l => l) ?? "";
+        doneNotice.command = ["notify-send", "--app-name=Claude", "--wait", "--action=default=Open", "--icon=" + (Theme.claudeIcon || "dialog-information"), failed ? "Claude stopped with an error" : "Claude is done (" + took + ")", failed ? "Open the panel to see what happened." : first.slice(0, 160)];
+        doneNotice.running = true;
+    }
+
+    // --wait: notify-send prints the clicked action; "default" = the card was clicked.
+    Process {
+        id: doneNotice
+        stdout: StdioCollector {
+            onStreamFinished: if (text.trim() === "default") ShellState.claudeOpen = true
+        }
     }
 
     function newChat() {
@@ -509,6 +545,9 @@ PanelWindow {
         onExited: (code, status) => {
             if (code !== 0)
                 root.add("note", "agentos-ask exited with code " + code + "; see journalctl --user -u quickshell");
+            // You closed the panel while Claude worked: tell you it's done.
+            if (!ShellState.claudeOpen)
+                root.notifyDone(code !== 0);
             root.busy = false;
             input.forceActiveFocus();
             root.checkPending(); // Claude may have just built something
@@ -549,6 +588,30 @@ PanelWindow {
 
         width: parent.width
         height: parent.height
+
+        // Keyboard, wherever the focus is (keys nothing else used bubble up to here):
+        // scroll the conversation and the buttons' shortcuts. Tab moves between the
+        // buttons; Enter in the input field only ever sends.
+        Keys.onPressed: event => {
+            const alt = event.modifiers & Qt.AltModifier, ctrl = event.modifiers & Qt.ControlModifier;
+            if (event.key === Qt.Key_PageUp)
+                list.scrollBy(-list.height * 0.85);
+            else if (event.key === Qt.Key_PageDown)
+                list.scrollBy(list.height * 0.85);
+            else if (ctrl && event.key === Qt.Key_Home)
+                list.positionViewAtBeginning();
+            else if (ctrl && event.key === Qt.Key_End)
+                list.toEnd();
+            else if (alt && event.key === Qt.Key_N)
+                root.newChat();
+            else if (alt && event.key === Qt.Key_S)
+                root.takeShot();
+            else if (alt && event.key === Qt.Key_M)
+                root.toggleDictation();
+            else
+                return;
+            event.accepted = true;
+        }
         radius: 20
         color: Theme.alpha(Theme.bg, 0.86)
         border.width: 1
@@ -597,13 +660,19 @@ PanelWindow {
                         NumberAnimation { to: 1; duration: 600; easing.type: Easing.InOutSine }
                     }
                 }
-                // New chat: forget the session so Claude starts fresh.
+                // New chat: forget the session so Claude starts fresh (also Alt+N).
                 Text {
                     text: "New chat"
                     visible: messages.count > 0
-                    color: newChatArea.containsMouse && !root.busy ? Theme.fg : Theme.alpha(Theme.fg, 0.45)
+                    color: activeFocus ? Theme.accent : newChatArea.containsMouse && !root.busy ? Theme.fg : Theme.alpha(Theme.fg, 0.45)
                     font.family: Theme.fontSans
                     font.pixelSize: 12
+                    font.underline: activeFocus
+                    activeFocusOnTab: true
+                    Keys.onReturnPressed: root.newChat()
+                    Keys.onEnterPressed: root.newChat()
+                    Keys.onSpacePressed: root.newChat()
+                    Keys.onEscapePressed: input.forceActiveFocus()
                     MouseArea {
                         id: newChatArea
                         anchors.fill: parent
@@ -695,13 +764,35 @@ PanelWindow {
                 clip: true
                 spacing: 10
                 model: messages
-                onContentHeightChanged: Qt.callLater(positionViewAtEnd)
+
+                // Follow new text only while you're at the bottom. Jumping to the end on
+                // every height change fought scrolling up: the list re-measures messages
+                // as they scroll into view, which changes its height.
+                property bool follow: true
+                property bool autoScrolling: false
+                function toEnd() {
+                    autoScrolling = true;
+                    positionViewAtEnd();
+                    autoScrolling = false;
+                }
+                function scrollBy(dy) {
+                    contentY = Math.max(originY, Math.min(contentY + dy, originY + contentHeight - height));
+                }
+                onContentHeightChanged: if (follow) Qt.callLater(toEnd)
+                onContentYChanged: if (!autoScrolling) follow = contentHeight - (contentY - originY) - height < 40
+                onCountChanged: if (count === 0) follow = true
+
+                ScrollBar.vertical: ScrollBar {
+                    policy: ScrollBar.AsNeeded
+                    width: 6
+                }
 
                 // who: "you" | "claude" (bubbles), "tool" | "note" (small status lines),
                 // or "approve" (a permission card waiting for your click).
                 delegate: Rectangle {
                     id: entry
 
+                    required property int index
                     required property string who
                     required property string body
                     required property string rid
@@ -745,6 +836,7 @@ PanelWindow {
                             textFormat: TextEdit.PlainText
                             wrapMode: TextEdit.WrapAnywhere
                             readOnly: true
+                            activeFocusOnTab: false // Tab goes to buttons, not every text
                             selectByMouse: true
                             selectionColor: Theme.alpha(Theme.accent, 0.4)
                             selectedTextColor: Theme.fg
@@ -770,6 +862,7 @@ PanelWindow {
                                 model: root.cardButtons(entry.who, entry.state)
 
                                 delegate: Rectangle {
+                                    id: cardButton
                                     required property var modelData
                                     readonly property bool allow: modelData.primary === true
 
@@ -777,6 +870,19 @@ PanelWindow {
                                     height: 30
                                     radius: 9
                                     color: allow ? (btnArea.containsMouse ? Theme.accent : Theme.alpha(Theme.accent, 0.8)) : (btnArea.containsMouse ? Theme.alpha(Theme.fg, 0.16) : Theme.alpha(Theme.fg, 0.08))
+
+                                    // Keyboard: Tab reaches it (outline shows focus), Enter or
+                                    // Space presses it, Esc goes back to typing. Only after a
+                                    // deliberate Tab: Enter in the input field just sends, and
+                                    // new cards never take the focus themselves.
+                                    activeFocusOnTab: true
+                                    border.width: activeFocus ? 2 : 0
+                                    border.color: allow ? Theme.fg : Theme.accent
+                                    onActiveFocusChanged: if (activeFocus) list.positionViewAtIndex(entry.index, ListView.Contain)
+                                    Keys.onReturnPressed: root.cardAction(entry.rid, modelData.action)
+                                    Keys.onEnterPressed: root.cardAction(entry.rid, modelData.action)
+                                    Keys.onSpacePressed: root.cardAction(entry.rid, modelData.action)
+                                    Keys.onEscapePressed: input.forceActiveFocus()
 
                                     Text {
                                         id: btnText
@@ -788,7 +894,6 @@ PanelWindow {
                                         font.weight: allow ? Font.DemiBold : Font.Normal
                                     }
 
-                                    // Mouse only: a stray Enter while typing can't approve anything.
                                     MouseArea {
                                         id: btnArea
                                         anchors.fill: parent
@@ -832,6 +937,7 @@ PanelWindow {
                         textFormat: who === "claude" ? TextEdit.MarkdownText : TextEdit.PlainText
                         wrapMode: TextEdit.Wrap
                         readOnly: true
+                        activeFocusOnTab: false // Tab goes to buttons, not every message
                         selectByMouse: true
                         selectionColor: Theme.alpha(Theme.accent, 0.4)
                         selectedTextColor: Theme.fg
@@ -891,8 +997,16 @@ PanelWindow {
                     hoverEnabled: true
                     enabled: !root.busy && !shotProc.running
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: shotProc.running = true
+                    onClicked: root.takeShot()
                 }
+
+                // Keyboard: Tab, then Enter/Space (or Alt+S from the input field).
+                activeFocusOnTab: true
+                Keys.onReturnPressed: root.takeShot()
+                Keys.onEnterPressed: root.takeShot()
+                Keys.onSpacePressed: root.takeShot()
+                Keys.onEscapePressed: input.forceActiveFocus()
+                FocusRing {}
             }
 
             // Microphone: click to talk, click again to stop. Transcribed locally by
@@ -931,6 +1045,14 @@ PanelWindow {
                     cursorShape: Qt.PointingHandCursor
                     onClicked: root.toggleDictation()
                 }
+
+                // Keyboard: Tab, then Enter/Space (or Alt+M from the input field).
+                activeFocusOnTab: true
+                Keys.onReturnPressed: root.toggleDictation()
+                Keys.onEnterPressed: root.toggleDictation()
+                Keys.onSpacePressed: root.toggleDictation()
+                Keys.onEscapePressed: input.forceActiveFocus()
+                FocusRing {}
             }
 
             TextField {

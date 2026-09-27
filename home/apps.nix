@@ -12,6 +12,7 @@ in
     playerctl
     pavucontrol
     networkmanagerapplet
+    libnotify # notify-send, e.g. the Claude panel's "Claude is done"
     # Agent multiplexer: persistent panes for Claude Code etc. (Super+Enter opens it).
     # Updated by Nix; `herdr update` can't write to the store.
     herdr
