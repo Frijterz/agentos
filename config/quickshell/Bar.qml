@@ -1,7 +1,8 @@
 import QtQuick
 import Quickshell
 import Quickshell.Hyprland
-import Quickshell.Io
+import Quickshell.Networking
+import Quickshell.Services.Pipewire
 import Quickshell.Services.UPower
 import Quickshell.Wayland
 
@@ -105,53 +106,50 @@ PanelWindow {
             anchors.verticalCenter: parent.verticalCenter
             spacing: 14
 
-            // Mode chip: click (or Super+M) for the next mode. Quiet when normal.
+            // Status button: Wi-Fi strength + speaker; opens the system menu (Super+Escape).
             Rectangle {
-                readonly property var modes: ({
-                        normal: { icon: "󰾅", label: "" },
-                        battery: { icon: "󰂃", label: "Battery saver" },
-                        presentation: { icon: "󰐯", label: "Presentation" },
-                        focus: { icon: "󰂛", label: "Focus" }
-                    })
-                readonly property var m: modes[ShellState.mode] ?? modes.normal
-                readonly property bool active: ShellState.mode !== "normal"
+                id: statusButton
+
+                readonly property var wifi: Networking.devices.values.find(d => d.networks !== undefined)?.networks.values.find(n => n.connected) ?? null
+                readonly property var sink: Pipewire.defaultAudioSink
 
                 anchors.verticalCenter: parent.verticalCenter
-                width: modeRow.implicitWidth + 16
+                width: statusRow.implicitWidth + 18
                 height: 26
                 radius: 13
-                color: active ? Theme.alpha(Theme.accent, 0.18) : modeHover.hovered ? Theme.alpha(Theme.fg, 0.08) : "transparent"
+                color: ShellState.systemOpen ? Theme.alpha(Theme.accent, 0.25) : statusHover.hovered ? Theme.alpha(Theme.fg, 0.1) : "transparent"
+
+                PwObjectTracker {
+                    objects: [statusButton.sink]
+                }
 
                 Row {
-                    id: modeRow
+                    id: statusRow
                     anchors.centerIn: parent
-                    spacing: 6
+                    spacing: 9
 
                     Text {
-                        text: parent.parent.m.icon
-                        color: parent.parent.active ? Theme.accent : Theme.alpha(Theme.fg, 0.5)
+                        readonly property var w: parent.parent.wifi
+                        text: !Networking.wifiEnabled ? "󰤭" : !w ? "󰤯" : w.signalStrength > 0.75 ? "󰤨" : w.signalStrength > 0.5 ? "󰤥" : w.signalStrength > 0.25 ? "󰤢" : "󰤟"
+                        color: Theme.fg
                         font.family: Theme.fontMono
                         font.pixelSize: 14
                     }
                     Text {
-                        visible: text !== ""
-                        text: parent.parent.m.label
-                        color: Theme.fg
-                        font.family: Theme.fontSans
-                        font.pixelSize: 12
+                        readonly property var a: parent.parent.sink?.audio
+                        text: !a || a.muted ? "󰖁" : a.volume > 0.5 ? "󰕾" : a.volume > 0 ? "󰖀" : "󰕿"
+                        color: a?.muted ? Theme.warn : Theme.fg
+                        font.family: Theme.fontMono
+                        font.pixelSize: 14
                     }
                 }
 
                 HoverHandler {
-                    id: modeHover
+                    id: statusHover
                     cursorShape: Qt.PointingHandCursor
                 }
                 TapHandler {
-                    onTapped: if (!modeProc.running) modeProc.running = true
-                }
-                Process {
-                    id: modeProc
-                    command: ["agentos-mode", "next"]
+                    onTapped: ShellState.systemOpen = !ShellState.systemOpen
                 }
             }
 
