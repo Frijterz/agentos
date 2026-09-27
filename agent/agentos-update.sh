@@ -5,7 +5,8 @@
 #        separate git worktree, `nix flake update`, build the system, commit flake.lock
 #        on the agentos-update branch, have Claude (no tools) summarise the package
 #        diff, write update.json for the panel and send a notification. Your own
-#        working tree is never touched.
+#        working tree is never touched. Held back (with a notification) if it brings
+#        Hyprland 0.57+ while config/hypr is still hyprland.conf.
 # adopt: after the panel applied the update, fast-forward the repo to that commit.
 
 repo="${AGENTOS_FLAKE:-$HOME/agentos}"
@@ -50,6 +51,21 @@ run() {
     exit 0
   fi
   git -C "$tree" commit -q -m "flake.lock: weekly update" -- flake.lock
+
+  # Hyprland 0.57 drops the .conf config format. While the repo still has
+  # config/hypr/hyprland.conf (not yet moved to Lua), hold the whole update back:
+  # applying it would leave Hyprland without your settings and key bindings.
+  hypr="$(nix eval --raw "$tree#nixosConfigurations.$host.config.programs.hyprland.package.version")"
+  if [ -f "$tree/config/hypr/hyprland.conf" ] &&
+    [ "$(printf '%s\n0.57\n' "$hypr" | sort -V | head -n 1)" = 0.57 ]; then
+    echo "agentos-update: held back: Hyprland $hypr needs the Lua config first."
+    rm -f "$info"
+    touch "$stamp"
+    notify-send -a agentos "System update held back" \
+      "It brings Hyprland $hypr, which no longer reads hyprland.conf. Move the config to Lua first (ask Claude)." || true
+    agentos-log note update "Weekly update held back: Hyprland $hypr needs the Lua config first" || true
+    exit 0
+  fi
 
   nix build "$tree#nixosConfigurations.$host.config.system.build.toplevel" --out-link "$tree/result"
   path="$(readlink -f "$tree/result")"
