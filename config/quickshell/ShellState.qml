@@ -11,6 +11,7 @@ Singleton {
     property bool screensaver: false
     property bool cheatsheetOpen: false
     property bool overviewOpen: false
+    property bool systemOpen: false
 
     // Desktop mode, written by agentos-mode (bar chip, Super+M, Claude).
     property string mode: "normal"

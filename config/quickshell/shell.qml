@@ -31,6 +31,14 @@ ShellRoot {
     // System password prompts (polkit agent lives in ShellState).
     PolkitDialog {}
 
+    SystemMenu {}
+
+    // qs ipc call system toggle  (Super+Escape, or the status button in the bar)
+    IpcHandler {
+        target: "system"
+        function toggle(): void { ShellState.systemOpen = !ShellState.systemOpen }
+    }
+
     // qs ipc call overview toggle  (Super+Tab)
     IpcHandler {
         target: "overview"

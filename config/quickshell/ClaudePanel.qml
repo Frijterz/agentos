@@ -504,6 +504,7 @@ PanelWindow {
         target: ShellState
         function onClaudeOpenChanged() {
             if (ShellState.claudeOpen) {
+                ShellState.systemOpen = false; // same corner of the screen
                 input.forceActiveFocus();
                 root.checkPending(); // e.g. built with nh os build in a terminal
                 root.refreshLimits();
