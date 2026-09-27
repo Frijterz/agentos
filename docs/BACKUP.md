@@ -5,18 +5,17 @@ Your home folder is backed up daily to Cloudflare R2 with restic
 the restic password the bucket is unreadable, to Cloudflare as well as to anyone else.
 The health watcher warns when the last good backup is more than 3 days old.
 
-**Keep the restic password and the R2 keys in Bitwarden.** If the laptop is gone, they
-are the only way back in; the copy on the laptop is gone with it.
+**Keep a copy of the restic password off the laptop.** Without it the backup can't be
+opened, by you either; if the laptop is gone, the copy on it is gone with it.
 
 ## One-time setup
 
-1. **Bucket.** In the Cloudflare dashboard: R2 → Create bucket, name it `agentos-backup`.
+1. **Bucket.** In the Cloudflare dashboard: R2 → Create bucket, name it `agentos-backup`,
+   jurisdiction *European Union* (the data stays in the EU).
 2. **Key.** R2 → Manage API tokens → Create API token: *Object Read & Write*, only
-   for that bucket. Note the Access Key ID, the Secret Access Key and your account ID
-   (it's part of the S3 endpoint, `https://<account-id>.r2.cloudflarestorage.com`).
-3. **Bitwarden.** Make an item "agentos backup": a generated password of 32+ characters
-   (that's the restic password), and the two R2 keys in its notes.
-4. **The secrets on the laptop.** In a real terminal (not in Claude, so the keys stay
+   for that bucket. You need the **Access Key ID** (32 characters) and the **Secret
+   Access Key** (64), not the "Token value". The account ID is in the dashboard URL.
+3. **The secrets on the laptop.** In a real terminal (not in Claude, so the keys stay
    out of any chat). The folder exists once the backup module is applied.
 
    ```sh
@@ -24,16 +23,20 @@ are the only way back in; the copy on the laptop is gone with it.
    ```
    with these four lines:
    ```sh
-   RESTIC_REPOSITORY=s3:https://<account-id>.r2.cloudflarestorage.com/agentos-backup
+   RESTIC_REPOSITORY=s3:https://<account-id>.eu.r2.cloudflarestorage.com/agentos-backup
    AWS_ACCESS_KEY_ID=<access key id>
    AWS_SECRET_ACCESS_KEY=<secret access key>
    AWS_DEFAULT_REGION=auto
    ```
-   and then the password, straight from Bitwarden:
+   `s3:` must be there and lowercase; `.eu.` is because the bucket is in the EU
+   jurisdiction (leave it out for a bucket without one).
+
+   Then generate the restic password, and copy it somewhere off the laptop:
    ```sh
-   rbw get "agentos backup" | sudo tee /var/lib/agentos/backup/password >/dev/null
+   head -c 32 /dev/urandom | base64 | sudo tee /var/lib/agentos/backup/password >/dev/null
+   sudo cat /var/lib/agentos/backup/password
    ```
-5. **First backup** (it also creates the repository in the bucket):
+4. **First backup** (it also creates the repository in the bucket):
    ```sh
    sudo systemctl start restic-backups-home
    journalctl -u restic-backups-home -e
@@ -53,7 +56,21 @@ For a recent mistake, snapper is quicker (`snapper -c home list`): it's local an
 hourly. restic is for when the laptop itself is lost or broken.
 
 On a new machine: install restic, fill in the same four variables plus
-`RESTIC_PASSWORD` from Bitwarden, and `restic restore latest --target /`.
+`RESTIC_PASSWORD` from your off-laptop copy, and `restic restore latest --target /`.
+
+## When it fails
+
+`journalctl -u restic-backups-home -e` shows why:
+
+- *invalid backend*: `RESTIC_REPOSITORY` doesn't start with a lowercase `s3:`.
+- *an empty password is not allowed*: the password file is empty.
+- *Access Denied*: the R2 token can't write to this bucket. Check that it is *Object
+  Read & Write* and covers `agentos-backup`.
+- *The specified bucket does not exist*: the bucket name, or `.eu.` in the address,
+  doesn't match the bucket.
+
+Being offline is fine: a failed run retries every 30 minutes, and the health watcher only
+warns once there's been no good backup for 3 days.
 
 ## What's in it
 
