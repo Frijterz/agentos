@@ -37,7 +37,8 @@ allow list becomes an Approve / Deny card. Around it:
 - **A mission log** (Super+L): a private daily record of what changed and why, with a
   short summary per day. Kept on the laptop only, never in this repo.
 - **Voice input** in the panel, transcribed locally (whisper.cpp); nothing leaves the laptop.
-- **Desktop modes**: normal, battery, presentation, focus (Super+M).
+- **Desktop modes**: normal, battery, presentation, focus (Super+M). Plugging in an
+  external screen switches to presentation mode, unplugging it switches back.
 
 **The shell** (Quickshell, live-reloading QML in `config/quickshell/`):
 - A floating bar: workspaces, CPU / temperature / memory / power telemetry (click for
@@ -122,6 +123,7 @@ from Hyprland. The main ones:
 | Super + 1…9 / Shift | Go to / move to workspace |
 | Super + arrows / Shift / Alt | Move focus / move window / snap to a screen half |
 | Super + Q · F · T | Close · fullscreen · float |
+| Super + H / Shift | Minimise / bring back the last minimised window |
 | Super + S / Super + Alt + S | Scratchpad: show / send a window there |
 | Super + Shift + S | Screenshot area → clipboard |
 | Super + Ctrl + S, Print | Screenshot area → editor (draw, crop) |

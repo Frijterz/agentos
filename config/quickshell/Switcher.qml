@@ -8,6 +8,7 @@ import Quickshell.Wayland
 // selected. Hold Alt and press Tab to step (Shift+Tab back), let go of Alt to switch. A
 // quick Alt+Tab flips between your last two windows. Arrows, Enter or a click work too;
 // Esc cancels. Previews are captured once on open (not live: cheap on battery).
+// Minimised windows (Super+H) show as HIDDEN and come back to the workspace you're on.
 PanelWindow {
     id: root
 
@@ -54,10 +55,19 @@ PanelWindow {
     // Close first, focus after: releasing our keyboard focus makes Hyprland refocus the
     // previous window, which would undo a switch made while we were still open.
     property string pendingAddress: ""
+    property bool pendingHidden: false
     Timer {
         id: focusLater
         interval: 60
-        onTriggered: Hyprland.dispatch("hl.dsp.focus({ window = \"address:0x" + root.pendingAddress + "\" })")
+        onTriggered: {
+            const win = "window = \"address:0x" + root.pendingAddress + "\"";
+            if (root.pendingHidden)
+                Hyprland.dispatch("hl.dsp.window.move({ workspace = " + (Hyprland.focusedMonitor?.activeWorkspace?.id ?? 1) + ", " + win + " })");
+            Hyprland.dispatch("hl.dsp.focus({ " + win + " })");
+        }
+    }
+    function isHidden(t) {
+        return t?.lastIpcObject?.workspace?.name === "special:minimized";
     }
     function commit() {
         if (!ShellState.switcherOpen)
@@ -66,6 +76,7 @@ PanelWindow {
         ShellState.switcherOpen = false;
         if (w) {
             pendingAddress = w.address;
+            pendingHidden = isHidden(w);
             focusLater.restart();
         }
     }
@@ -202,7 +213,7 @@ PanelWindow {
                         Text {
                             x: (frame.width - frame.w) / 2 + 6
                             y: (frame.height - frame.h) / 2 + 4
-                            text: card.ipc.workspace?.name ?? ""
+                            text: root.isHidden(card.modelData) ? "HIDDEN" : card.ipc.workspace?.name ?? ""
                             color: Theme.fg
                             opacity: 0.6
                             style: Text.Outline

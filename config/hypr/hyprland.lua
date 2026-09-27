@@ -9,7 +9,41 @@
 -- Samsung 1920×1200 OLED, 60 Hz (UM3406KA panel, read from EDID).
 -- Scale 1.25 → 1536×960 of workspace. Try 1 for more space; this file is live.
 hl.monitor({ output = "eDP-1", mode = "1920x1200@60", position = "0x0", scale = 1.25 })
-hl.monitor({ output = "", mode = "preferred", position = "auto", scale = 1 })
+-- Anything else (a projector, TV or desk monitor): its own best mode, and a scale that
+-- Hyprland picks from its pixel density.
+hl.monitor({ output = "", mode = "preferred", position = "auto", scale = "auto" })
+
+-- An external screen switches to presentation mode (agentos-mode: no screen lock,
+-- screensaver or notification pop-ups). Unplugging the last one goes back to normal,
+-- but only if it was switched on this way and nobody changed the mode since; the
+-- marker file survives config reloads. The notice goes out first: presentation mode
+-- holds pop-ups back.
+local autoMarker = '"${XDG_STATE_HOME:-$HOME/.local/state}/agentos/auto-presentation"'
+-- Not external: the built-in panel (eDP-*), or the window of a Hyprland running inside
+-- this one (WAYLAND-*, e.g. when testing a config).
+local function external(m)
+    return not (m.name:match("^eDP") or m.name:match("^WAYLAND%-"))
+end
+hl.on("monitor.added", function(m)
+    if external(m) then
+        hl.exec_cmd("notify-send -a agentos 'Presentation mode' 'External screen connected: no screen lock or pop-ups until you unplug it.'; "
+            .. "touch " .. autoMarker .. "; agentos-mode presentation")
+    end
+end)
+hl.on("monitor.removed", function(m)
+    if not external(m) then
+        return
+    end
+    for _, other in ipairs(hl.get_monitors()) do
+        if other.name ~= m.name and external(other) then
+            return
+        end
+    end
+    -- `test`, not `[ … ]`: a command starting with "[" reads as exec rules ("[workspace 2] app").
+    hl.exec_cmd("test -e " .. autoMarker .. " && rm " .. autoMarker
+        .. ' && test "$(agentos-mode status)" = presentation && agentos-mode normal'
+        .. " && notify-send -a agentos 'Presentation mode off' 'The external screen was unplugged.'")
+end)
 
 -- Quickshell (also the polkit agent and notification daemon) and hypridle start as
 -- systemd user services, so nothing is started from here.
@@ -150,6 +184,10 @@ hl.config({
 hl.gesture({ fingers = 3, direction = "horizontal", action = "workspace" })
 
 -- ── Keybinds ─────────────────────────────────────────────────────────────────
+-- Functions the key bindings use, also callable from outside for scripts and tests:
+-- hyprctl eval 'agentos.snap("left")', hyprctl eval 'agentos.restore()'.
+agentos = {}
+
 local mod = "SUPER"
 local term = "ghostty"
 
@@ -186,6 +224,21 @@ bind(mod .. " + grave", "Workspaces: Previous workspace", hl.dsp.focus({ workspa
 bind(mod .. " + Q", "Windows: Close window", hl.dsp.window.close())
 bind(mod .. " + F", "Windows: Fullscreen", hl.dsp.window.fullscreen())
 bind(mod .. " + T", "Windows: Float / tile", hl.dsp.window.float({ action = "toggle" }))
+-- Minimise: the window waits out of sight on a special workspace. Super+Shift+H brings
+-- back the most recent one to the workspace you're on; Alt+Tab lists them as hidden.
+bind(mod .. " + H", "Windows: Minimise (hide)", hl.dsp.window.move({ workspace = "special:minimized", follow = false }))
+function agentos.restore()
+    local hidden = hl.get_windows({ workspace = "special:minimized" })
+    table.sort(hidden, function(a, b)
+        return a.focus_history_id < b.focus_history_id
+    end)
+    local w, here = hidden[1], hl.get_active_workspace()
+    if w and here then
+        hl.dispatch(hl.dsp.window.move({ workspace = here.id, window = "address:" .. w.address }))
+        hl.dispatch(hl.dsp.focus({ window = "address:" .. w.address }))
+    end
+end
+bind(mod .. " + SHIFT + H", "Windows: Bring back the last minimised window", agentos.restore)
 bind(mod .. " + J", "Windows: Flip split direction", hl.dsp.layout("togglesplit"))
 
 bind(mod .. " + Escape", "System: System menu (Wi-Fi / Bluetooth / sound / power)", run("qs ipc call system toggle"))
@@ -206,11 +259,39 @@ bind("Print", "Tools: Screenshot area to the editor (draw / crop)", run(toEditor
 bind("SHIFT + Print", "Tools: Screenshot whole screen to the editor", run("grim - | satty --filename -"))
 bind(mod .. " + SHIFT + C", "Tools: Pick colour to clipboard", run("hyprpicker -a"))
 
+-- Snap the active window to a screen half: floating, inside the usable area (the
+-- monitor minus the bar's reserved space and gaps_out), one gap between the halves.
+-- Hyprland has no built-in "half screen"; Super+T tiles the window again.
+function agentos.snap(side)
+    local w = hl.get_active_window()
+    if not w or not w.monitor then
+        return
+    end
+    local m, r = w.monitor, w.monitor.reserved
+    local g = hl.get_config("general.gaps_out")
+    local gap = type(g) == "table" and g.top or g
+    -- Layout coordinates: monitor pixels / scale.
+    local x0, y0 = m.x + r.left + gap, m.y + r.top + gap
+    local width = math.floor(m.width / m.scale - r.left - r.right - 2 * gap)
+    local height = math.floor(m.height / m.scale - r.top - r.bottom - 2 * gap)
+    local hw, hh = math.floor((width - gap) / 2), math.floor((height - gap) / 2)
+    local box = ({
+        left = { x0, y0, hw, height },
+        right = { x0 + width - hw, y0, hw, height },
+        up = { x0, y0, width, hh },
+        down = { x0, y0 + height - hh, width, hh },
+    })[side]
+    hl.dispatch(hl.dsp.window.float({ action = "enable" }))
+    hl.dispatch(hl.dsp.window.resize({ x = box[3], y = box[4] }))
+    hl.dispatch(hl.dsp.window.move({ x = math.floor(box[1]), y = math.floor(box[2]) }))
+end
+
 for _, dir in ipairs({ "left", "right", "up", "down" }) do
     bind(mod .. " + " .. dir, "Windows: Focus window in direction", hl.dsp.focus({ direction = dir }))
     bind(mod .. " + SHIFT + " .. dir, "Windows: Move window in direction", hl.dsp.window.move({ direction = dir }))
-    -- Snap to a screen half (floats the window; Super+T tiles it again). See snap.sh.
-    bind(mod .. " + ALT + " .. dir, "Windows: Snap to left / right / upper / lower half", run("bash ~/agentos/config/hypr/snap.sh " .. dir))
+    bind(mod .. " + ALT + " .. dir, "Windows: Snap to left / right / upper / lower half", function()
+        agentos.snap(dir)
+    end)
 end
 
 -- Resize (hold to repeat). Tiled windows move the split; floating ones change size.
