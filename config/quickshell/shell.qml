@@ -46,6 +46,14 @@ ShellRoot {
     // Alt+Tab (its IPC target, "switcher", lives inside).
     Switcher {}
 
+    MissionLog {}
+
+    IpcHandler {
+        target: "missionlog"
+        function toggle(): void { ShellState.missionLogOpen = !ShellState.missionLogOpen }
+        function close(): void { ShellState.missionLogOpen = false }
+    }
+
     // Notification pop-ups (the daemon itself is the Notifs singleton).
     Toasts {}
 

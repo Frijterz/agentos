@@ -97,6 +97,10 @@ check() {
     printf '%s\n' "$fresh" >>"$notified"
     notify-send -a agentos "agentos noticed $(printf '%s\n' "$fresh" | wc -l) new problem(s)" \
       "Open the Claude panel (Super+A) to review them." || true
+    # Into the mission log too.
+    jq -r --rawfile fresh <(printf '%s\n' "$fresh") \
+      '($fresh | split("\n")) as $f | .findings[] | select(.id as $i | $f | index($i)) | .title' "$out" |
+      while read -r title; do agentos-log note health "$title" || true; done
   fi
   [ "$(jq '.findings | length' "$out")" -gt 0 ] || rm -f "$out"
 }

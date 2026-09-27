@@ -76,6 +76,7 @@ run() {
   touch "$stamp"
 
   notify-send -a agentos "System update ready" "Open the Claude panel (Super+A) to review and apply it." || true
+  agentos-log note update "Weekly update prepared ($(printf '%s\n' "$diff" | grep -c '^\[' || true) package changes), waiting to be applied" || true
 }
 
 case "${1:-run}" in

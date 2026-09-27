@@ -53,6 +53,24 @@ let
     text = builtins.readFile ../../agent/agentos-mode.sh;
   };
 
+  # The mission log: a private daily record of what changed and why (Super+L, or ask
+  # Claude). Compiled nightly with a short summary by a tool-less Claude.
+  agentos-log = pkgs.writeShellApplication {
+    name = "agentos-log";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.findutils
+      pkgs.gawk
+      pkgs.gnugrep
+      pkgs.gnused
+      pkgs.git
+      pkgs.jq
+      pkgs.claude-code
+      config.systemd.package
+    ];
+    text = builtins.readFile ../../agent/agentos-log.sh;
+  };
+
   # Hourly problem check (failed units, journal errors, battery, disk) for the panel.
   agentos-watch = pkgs.writeShellApplication {
     name = "agentos-watch";
@@ -63,6 +81,7 @@ let
       pkgs.jq
       pkgs.libnotify
       config.systemd.package
+      agentos-log
     ];
     text = builtins.readFile ../../agent/agentos-watch.sh;
   };
@@ -79,6 +98,7 @@ let
       pkgs.libnotify
       pkgs.claude-code
       config.nix.package
+      agentos-log
     ];
     text = builtins.readFile ../../agent/agentos-update.sh;
   };
@@ -144,6 +164,7 @@ let
       pkgs.coreutils
       agentos-approve
       agentos-screenshot
+      agentos-log
     ];
     text = builtins.readFile ../../agent/agentos-ask.sh;
   };
@@ -160,7 +181,26 @@ in
     agentos-mode
     agentos-usage
     agentos-dictate
+    agentos-log
   ];
+
+  # Finish yesterday's mission log entry (and any missed while the laptop was off).
+  systemd.user.services.agentos-log = {
+    description = "Write the agentos mission log for past days";
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "${agentos-log}/bin/agentos-log compile";
+      Nice = 10;
+    };
+  };
+  systemd.user.timers.agentos-log = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnCalendar = "*-*-* 00:10";
+      Persistent = true; # missed at night (asleep, off): run soon after start
+      OnStartupSec = "15min";
+    };
+  };
 
   # Modes last for one session: start every login in normal mode, so a forgotten
   # presentation mode can't keep the screen from locking.

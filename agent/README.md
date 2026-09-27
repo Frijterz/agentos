@@ -54,6 +54,12 @@ subscription login (the SDK docs direct you to an API key instead).
   profile, eye candy, do-not-disturb (Quickshell), idle inhibitor. System menu, Super+M, or ask
   Claude; presentation disables the screen lock, so Claude needs a card for it.
   Modes reset to normal at login.
+- Done: mission log (`agentos-log`, Super+L card, and the panel's Claude may read it).
+  A private daily record in `~/.local/state/agentos/mission-log` (never committed):
+  applied builds and undos (generation links + the Apply journal, so terminal switches
+  count too), commits, health findings, prepared updates and each panel
+  conversation's opening question. A nightly timer finishes past days with a 2-3
+  sentence summary by a tool-less Claude that sees only that day's facts.
 
 ## Security rules (all phases)
 - Text Claude *reads* (web pages, mail, files, screenshots) never authorises an action.
