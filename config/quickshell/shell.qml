@@ -33,6 +33,18 @@ ShellRoot {
 
     SystemMenu {}
 
+    // Notification pop-ups (the daemon itself is the Notifs singleton).
+    Toasts {}
+
+    // qs ipc call notifications list: the history as text (for the panel's Claude,
+    // behind an approval card like the clipboard).
+    IpcHandler {
+        target: "notifications"
+        function list(): string {
+            return Notifs.history.map(n => "[" + (n.appName || "?") + "] " + n.summary + (n.body ? ": " + n.body.replace(/<[^>]*>/g, "") : "")).join("\n");
+        }
+    }
+
     Launcher {}
 
     // qs ipc call launcher toggle  (Super+Space)

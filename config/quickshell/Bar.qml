@@ -135,6 +135,13 @@ PanelWindow {
                         font.family: Theme.fontMono
                         font.pixelSize: 14
                     }
+                    // Notifications: dot = unread, crossed out = do not disturb (mode).
+                    Text {
+                        text: Notifs.dnd ? "󰂛" : Notifs.unread > 0 ? "󰂞" : "󰂚"
+                        color: Notifs.unread > 0 && !Notifs.dnd ? Theme.accent : Theme.fg
+                        font.family: Theme.fontMono
+                        font.pixelSize: 14
+                    }
                     Text {
                         readonly property var a: parent.parent.sink?.audio
                         text: !a || a.muted ? "󰖁" : a.volume > 0.5 ? "󰕾" : a.volume > 0 ? "󰖀" : "󰕿"

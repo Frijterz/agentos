@@ -103,6 +103,9 @@ PanelWindow {
     Process {
         id: power
     }
+    Process {
+        id: modeProc
+    }
     function powerAction(a) {
         if (a.confirm && confirming !== a.id) {
             confirming = a.id;
@@ -121,6 +124,7 @@ PanelWindow {
             if (ShellState.systemOpen) {
                 ShellState.claudeOpen = false; // same corner of the screen
                 brightnessRead.running = true;
+                Notifs.unread = 0;
                 keys.forceActiveFocus();
             } else {
                 root.askPasswordFor = null;
@@ -520,6 +524,60 @@ PanelWindow {
                 }
             }
 
+            // Mode (agentos-mode): also the one place that shows which mode is on.
+            Row {
+                width: parent.width
+                spacing: 6
+
+                Repeater {
+                    model: [
+                        { id: "normal", icon: "󰾅", label: "Normal" },
+                        { id: "battery", icon: "󰂃", label: "Battery" },
+                        { id: "presentation", icon: "󰐯", label: "Present" },
+                        { id: "focus", icon: "󰂛", label: "Focus" }
+                    ]
+
+                    delegate: Rectangle {
+                        required property var modelData
+                        readonly property bool current: ShellState.mode === modelData.id
+
+                        width: (parent.width - 3 * 6) / 4
+                        height: 34
+                        radius: 10
+                        color: current ? Theme.alpha(Theme.accent, 0.2) : modeArea.containsMouse ? Theme.alpha(Theme.fg, 0.1) : Theme.alpha(Theme.fg, 0.05)
+                        border.width: current ? 1 : 0
+                        border.color: Theme.alpha(Theme.accent, 0.5)
+
+                        Row {
+                            anchors.centerIn: parent
+                            spacing: 6
+                            Text {
+                                text: modelData.icon
+                                color: parent.parent.current ? Theme.accent : Theme.fg
+                                font.family: Theme.fontMono
+                                font.pixelSize: 14
+                            }
+                            Text {
+                                text: modelData.label
+                                color: parent.parent.current ? Theme.accent : Theme.alpha(Theme.fg, 0.7)
+                                font.family: Theme.fontSans
+                                font.pixelSize: 11
+                            }
+                        }
+                        MouseArea {
+                            id: modeArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                modeProc.command = ["agentos-mode", modelData.id];
+                                modeProc.running = true;
+                            }
+                        }
+                    }
+                }
+            }
+
             Rectangle {
                 width: parent.width
                 height: 1
@@ -560,6 +618,135 @@ PanelWindow {
                 mutable: false
                 value: root.brightness
                 onMoved: v => root.setBrightness(v)
+            }
+
+            Rectangle {
+                width: parent.width
+                height: 1
+                color: Theme.alpha(Theme.fg, 0.08)
+            }
+
+            // Notifications (Notifs.qml): newest first; click runs the notification's
+            // default action, × removes it.
+            Row {
+                width: parent.width
+                Text {
+                    width: parent.width - clearAll.width
+                    text: "NOTIFICATIONS" + (Notifs.history.length ? "  " + Notifs.history.length : "") + (Notifs.dnd ? "  ·  DO NOT DISTURB" : "")
+                    color: Theme.alpha(Theme.fg, 0.5)
+                    font.family: Theme.fontMono
+                    font.pixelSize: 10
+                    font.letterSpacing: 1.5
+                }
+                Text {
+                    id: clearAll
+                    visible: Notifs.history.length > 0
+                    text: "Clear"
+                    color: Theme.accent
+                    font.family: Theme.fontSans
+                    font.pixelSize: 11
+                    MouseArea {
+                        anchors.fill: parent
+                        anchors.margins: -6
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: Notifs.clearAll()
+                    }
+                }
+            }
+            Text {
+                visible: Notifs.history.length === 0
+                text: "Nothing new"
+                color: Theme.alpha(Theme.fg, 0.35)
+                font.family: Theme.fontSans
+                font.pixelSize: 12
+            }
+            Column {
+                width: parent.width
+                spacing: 2
+
+                Repeater {
+                    model: Notifs.history.slice(0, 5)
+
+                    delegate: Rectangle {
+                        id: entry
+
+                        required property var modelData
+                        readonly property real at: Notifs.arrived[modelData.id] ?? 0
+
+                        width: parent.width
+                        height: 46
+                        radius: 10
+                        color: entryArea.containsMouse ? Theme.alpha(Theme.fg, 0.07) : "transparent"
+
+                        MouseArea {
+                            id: entryArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: Notifs.activate(entry.modelData)
+                        }
+                        Row {
+                            anchors.left: parent.left
+                            anchors.leftMargin: 8
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: 10
+
+                            NotifIcon {
+                                anchors.verticalCenter: parent.verticalCenter
+                                notification: entry.modelData
+                                size: 24
+                            }
+                            Column {
+                                anchors.verticalCenter: parent.verticalCenter
+                                Text {
+                                    width: entry.width - 100
+                                    text: entry.modelData.summary
+                                    elide: Text.ElideRight
+                                    color: Theme.fg
+                                    font.family: Theme.fontSans
+                                    font.pixelSize: 12
+                                    font.weight: Font.DemiBold
+                                }
+                                Text {
+                                    width: entry.width - 100
+                                    text: entry.modelData.body.replace(/<[^>]*>/g, "").replace(/\n/g, " ")
+                                    elide: Text.ElideRight
+                                    color: Theme.alpha(Theme.fg, 0.55)
+                                    font.family: Theme.fontSans
+                                    font.pixelSize: 11
+                                }
+                            }
+                        }
+                        Text {
+                            anchors.right: dismissIcon.left
+                            anchors.rightMargin: 8
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: {
+                                const mins = Math.floor((Date.now() - entry.at) / 60000);
+                                return !entry.at ? "" : mins < 1 ? "now" : mins < 60 ? mins + "m" : Math.floor(mins / 60) + "h";
+                            }
+                            color: Theme.alpha(Theme.fg, 0.4)
+                            font.family: Theme.fontMono
+                            font.pixelSize: 10
+                        }
+                        Text {
+                            id: dismissIcon
+                            anchors.right: parent.right
+                            anchors.rightMargin: 8
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "󰅖"
+                            color: Theme.alpha(Theme.fg, 0.45)
+                            font.family: Theme.fontMono
+                            font.pixelSize: 13
+                            MouseArea {
+                                anchors.fill: parent
+                                anchors.margins: -6
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: Notifs.dismiss(entry.modelData)
+                            }
+                        }
+                    }
+                }
             }
 
             Rectangle {
