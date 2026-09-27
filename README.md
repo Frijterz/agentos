@@ -34,13 +34,24 @@ agent/                     Claude layer (agentos-ask, roadmap)
 
 ## Keys
 
+The full list is always one key away: **Super + /** shows every binding, read live
+from `config/hypr/hyprland.conf`. The main ones:
+
 | Key | Action |
 |---|---|
+| Super + / | Cheat sheet (all keys) |
 | Super + A | Claude panel |
-| Super + Space | Launcher |
-| Super + Enter | Terminal (Ghostty) |
-| Super + B | Firefox |
-| Super + Tab | Previous workspace (overview planned in Quickshell) |
+| Super + Space | Launcher (apps, `=` calculator, else ask Claude) |
+| Super + Enter / Shift | Terminal with Herdr / plain terminal (Ghostty) |
+| Super + B | Chromium |
+| Super + E / Shift | Files: Yazi in the terminal / Thunar |
+| Super + P / Shift | Password: type / copy (rbw) |
+| Super + Tab | Workspace overview |
+| Super + Escape | System menu (Wi-Fi, Bluetooth, sound, power) |
+| Super + Shift + Escape | System monitor (btop) |
+| Super + C | Calendar and weather |
+| Super + N | Night light pause / resume |
+| Super + M | Next mode (normal / battery / presentation / focus) |
 | Super + 1…9 / Shift | Go to / move to workspace |
 | Super + arrows / Shift | Move focus / move window |
 | Super + Q · F · T | Close · fullscreen · float |
@@ -48,7 +59,7 @@ agent/                     Claude layer (agentos-ask, roadmap)
 | Super + Shift + S | Screenshot region → clipboard |
 | Super + Shift + C | Colour picker |
 | Super + Ctrl + L | Lock |
-| Super + Shift + E | Log out |
+| Super + Ctrl + Shift + E | Log out |
 | 3-finger swipe | Switch workspace |
 
 ## The look

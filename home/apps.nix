@@ -65,7 +65,22 @@ in
         # claude-cli:// links (e.g. signing in from the browser): Claude Code's own
         # handler, which it wrote to mimeapps.list before Home Manager managed the file.
         "x-scheme-handler/claude-cli" = "claude-code-url-handler.desktop";
+        # "Show in folder" and friends open Thunar.
+        "inode/directory" = "thunar.desktop";
       };
+  };
+
+  # Yazi: the keyboard file manager, in Ghostty (Super+E). Stylix themes it; Ghostty
+  # shows image previews inline. `y` in the shell opens it and, on quit, leaves you
+  # in the folder you ended up in.
+  programs.yazi = {
+    enable = true;
+    enableZshIntegration = true;
+    shellWrapperName = "y";
+    settings.mgr = {
+      sort_dir_first = true;
+      show_hidden = false; # . toggles
+    };
   };
 
   programs.ghostty = {

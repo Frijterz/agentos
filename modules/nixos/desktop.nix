@@ -90,6 +90,28 @@ in
 
   services.blueman.enable = true;
 
+  # Files: Thunar for the graphical jobs (drag and drop, USB sticks, trash), Yazi in
+  # the terminal for everyday use (home/apps.nix). gvfs gives Thunar the trash, mounting
+  # and network shares, udisks2 the disk access behind it, tumbler the thumbnails.
+  programs.thunar = {
+    enable = true;
+    plugins = with pkgs; [
+      thunar-archive-plugin # "Extract here" / "Create archive" in the right-click menu
+      thunar-volman # opens a window when you plug in a USB stick
+    ];
+  };
+  programs.xfconf.enable = true; # Thunar's settings store
+  services.udisks2.enable = true;
+  # Without Windows (SMB) shares: they need all of Samba (~85 MiB). Drop the
+  # `.override` to get them back, e.g. for a NAS.
+  services.gvfs = {
+    enable = true;
+    package = pkgs.gvfs.override { samba = null; };
+  };
+  # Without e-book (EPUB) thumbnails: they need a whole web engine (webkitgtk, ~170 MiB).
+  services.tumbler.enable = true;
+  nixpkgs.overlays = [ (_: prev: { tumbler = prev.tumbler.override { libgepub = null; }; }) ];
+
   # Browser: Chromium (native Wayland via NIXOS_OZONE_WL above), themed from Stylix.
   # Stylix's own Chromium target is off: its BrowserThemeColor policy only tints
   # Chromium's palette and blocks every theme extension, ours included.
