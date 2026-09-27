@@ -19,3 +19,6 @@ cs35l41-hda.*Wake failed, re-enter hibernate
 # A program crashed while the system was shutting down and the coredump socket was
 # already closed, so the dump was dropped. Only happens during shutdown/reboot.
 systemd-coredump.*Failed to send coredump datagram: Broken pipe
+# The launcher (or the rofi-rbw password picker, also fuzzel) was started while one was
+# already open; fuzzel allows one instance, so the second just exits. Harmless.
+fuzzel.*failed to acquire lock: fuzzel already running
