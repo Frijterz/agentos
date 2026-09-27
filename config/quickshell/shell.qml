@@ -64,6 +64,10 @@ ShellRoot {
         function list(): string {
             return Notifs.history.map(n => "[" + (n.appName || "?") + "] " + n.summary + (n.body ? ": " + n.body.replace(/<[^>]*>/g, "") : "")).join("\n");
         }
+        // qs ipc call notifications dismiss "<text>": remove those whose title or body has it.
+        function dismiss(text: string): void {
+            Notifs.history.filter(n => (n.summary + " " + n.body).includes(text)).forEach(n => Notifs.dismiss(n));
+        }
     }
 
     Launcher {}

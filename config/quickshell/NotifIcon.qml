@@ -17,10 +17,11 @@ Item {
         const n = notification;
         if (!n)
             return "";
-        if (n.image)
-            return n.image;
+        // Before the image: Ghostty sends its own icon as the notification's image.
         if (Theme.claudeIcon && (/claude/i.test(n.appName ?? "") || n.summary === "Claude Code"))
             return Theme.claudeIcon;
+        if (n.image)
+            return n.image;
         const name = n.appIcon || n.desktopEntry;
         if (!name)
             return "";
