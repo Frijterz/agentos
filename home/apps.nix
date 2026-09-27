@@ -119,18 +119,8 @@ in
     };
   };
 
-  # Notifications until the Quickshell notification centre exists.
-  services.mako = {
-    enable = true;
-    settings = {
-      default-timeout = 6000;
-      border-radius = 14;
-      padding = "12";
-      margin = "12";
-      # agentos-mode presentation/focus: hide notifications (still in `makoctl history`).
-      "mode=do-not-disturb".invisible = 1;
-    };
-  };
+  # Notifications: Quickshell is the notification daemon now (config/quickshell/
+  # Notifs.qml, Toasts.qml, history in the system menu), so no mako.
 
   programs.zsh = {
     enable = true;

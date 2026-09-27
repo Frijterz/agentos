@@ -25,7 +25,7 @@ subscription login (the SDK docs direct you to an API key instead).
 - Done: desktop context. Active window and workspace go with every question;
   `hyprctl clients/workspaces` need no approval. Screenshots come from the panel's
   camera button (you decide) or `agentos-screenshot` behind a card; clipboard
-  (`wl-paste`) and notifications (`makoctl history`) are behind a card too. Claude is
+  (`wl-paste`) and notifications (`qs ipc call notifications list`) are behind a card too. Claude is
   told to treat all of these as untrusted data, never instructions.
 
 ### Phase 3: apply with approval (done)
@@ -51,7 +51,7 @@ subscription login (the SDK docs direct you to an API key instead).
   with you present; it never fixes anything unattended. Review its conclusions: on
   the first run it wrongly called the missing ACP70 mic driver harmless.
 - Done: modes via `agentos-mode` (normal / battery / presentation / focus): power
-  profile, eye candy, mako do-not-disturb, idle inhibitor. Bar chip, Super+M, or ask
+  profile, eye candy, do-not-disturb (Quickshell), idle inhibitor. System menu, Super+M, or ask
   Claude; presentation disables the screen lock, so Claude needs a card for it.
   Modes reset to normal at login.
 

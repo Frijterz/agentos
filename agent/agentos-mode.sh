@@ -1,5 +1,5 @@
 # agentos-mode [normal | battery | presentation | focus | next | status]
-# Switch the desktop mode. Packaged by modules/nixos/agent.nix; used by the bar chip,
+# Switch the desktop mode. Packaged by modules/nixos/agent.nix; used by the system menu,
 # Super+M and the panel's Claude. Modes last for the session: login resets to normal.
 #
 #   normal        balanced power, eye candy on, notifications on
@@ -7,7 +7,7 @@
 #   presentation  performance, notifications silenced, no screensaver/lock/suspend
 #   focus         balanced, notifications silenced
 #
-# Silenced notifications aren't lost: `makoctl history` / `makoctl restore`.
+# Silenced notifications aren't lost: they're in the system menu's history.
 
 state="${XDG_STATE_HOME:-$HOME/.local/state}/agentos/mode"
 mkdir -p "$(dirname "$state")"
@@ -49,11 +49,8 @@ elif [ "$current" = battery ]; then
   hyprctl reload >/dev/null
 fi
 
-# Notifications: mako's do-not-disturb mode hides them (home/apps.nix).
-case "$mode" in
-  presentation | focus) makoctl mode -s do-not-disturb >/dev/null ;;
-  *) makoctl mode -s default >/dev/null ;;
-esac
+# Notifications need nothing here: Quickshell's daemon (Notifs.qml) reads the mode file
+# below and holds pop-ups back in presentation and focus.
 
 # Presentation: an idle inhibitor, which hypridle respects (no screensaver, lock, suspend).
 systemctl --user stop agentos-presentation.service 2>/dev/null || true

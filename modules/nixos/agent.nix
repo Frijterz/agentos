@@ -48,7 +48,6 @@ let
       pkgs.coreutils
       pkgs.power-profiles-daemon
       pkgs.hyprland
-      pkgs.mako
       config.systemd.package
     ];
     text = builtins.readFile ../../agent/agentos-mode.sh;
