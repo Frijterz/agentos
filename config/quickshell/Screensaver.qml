@@ -3,10 +3,11 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
 
-// Mission Control standby screen: true black (OLED), with one console block: an orbit
-// ring, a big amber clock, the date and the weather. The block moves to a new spot
-// every minute so no pixel stays lit. Started and stopped by hypridle via
-// `qs ipc call screensaver start|stop`.
+// Mission Control standby screen: true black (OLED), with one console block fading in
+// at the centre: the agentOS mark, an orbit ring, a big amber clock, date and weather.
+// Started by hypridle (`qs ipc call screensaver start`). Any input dismisses it, not
+// just hypridle's `stop`: when it was started some other way nothing else would, and
+// it covered the screen for good.
 PanelWindow {
     id: root
 
@@ -23,7 +24,37 @@ PanelWindow {
     exclusionMode: ExclusionMode.Ignore
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "agentos-screensaver"
+    // Hold the keyboard while shown: keys must not reach a window you can't see
+    // (a password typed "into the screensaver" once landed in a terminal).
+    WlrLayershell.keyboardFocus: visible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
     color: "black"
+
+    // Ignore input for a moment after appearing, so it doesn't vanish instantly.
+    property real shownAt: 0
+    onVisibleChanged: if (visible) {
+        shownAt = Date.now();
+        keys.forceActiveFocus();
+    }
+    function dismiss() {
+        if (visible && Date.now() - shownAt > 1000)
+            ShellState.screensaver = false;
+    }
+
+    MouseArea {
+        anchors.fill: parent
+        hoverEnabled: true
+        onPositionChanged: root.dismiss()
+        onPressed: root.dismiss()
+        onWheel: root.dismiss()
+    }
+    Item {
+        id: keys
+        focus: true
+        Keys.onPressed: event => {
+            root.dismiss();
+            event.accepted = true;
+        }
+    }
 
     // Weather from agentos-weather (home/weather.nix), refreshed every 30 minutes.
     property var weather: null
@@ -42,7 +73,6 @@ PanelWindow {
     SystemClock {
         id: clock
         precision: SystemClock.Minutes
-        onDateChanged: block.wander()
     }
 
     Item {
@@ -55,40 +85,31 @@ PanelWindow {
             target: root
             function onVisibleChanged() {
                 scene.opacity = 0;
-                if (root.visible) {
-                    block.wander();
+                if (root.visible)
                     fadeIn.restart();
-                }
             }
         }
+        // A slow fade in; the block stays at the centre (it's on for at most ~6 min:
+        // lock at 10, screen off at 11, see home/idle.nix).
         NumberAnimation {
             id: fadeIn
             target: scene
             property: "opacity"
             to: 1
-            duration: 2500
+            duration: 4000
             easing.type: Easing.InOutQuad
         }
 
         Item {
             id: block
 
-            readonly property real ring: 190
+            // Radius: the date and weather lines (~300 px wide, ~180 px below the centre)
+            // need ≥ ~235 to stay inside the ring; 260 leaves room.
+            readonly property real ring: 260
 
-            function wander() {
-                x = ring * 0.2 + Math.random() * (scene.width - width - ring * 0.4);
-                y = ring * 0.2 + Math.random() * (scene.height - height - ring * 0.4);
-            }
-
+            anchors.centerIn: parent
             width: ring * 2
             height: ring * 2
-
-            Behavior on x {
-                NumberAnimation { duration: 4000; easing.type: Easing.InOutSine }
-            }
-            Behavior on y {
-                NumberAnimation { duration: 4000; easing.type: Easing.InOutSine }
-            }
 
             // Orbit ring, with one satellite taking a minute per lap.
             Rectangle {
@@ -133,15 +154,15 @@ PanelWindow {
                 // The agentOS mark, breathing a slow glow (calmer than the boot splash).
                 Item {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    width: 84
-                    height: 84
+                    width: 168
+                    height: 168
                     visible: Theme.logoDir !== ""
 
                     Image {
                         anchors.fill: parent
                         source: Theme.logo("glow@2x.png")
-                        sourceSize.width: 168
-                        sourceSize.height: 168
+                        sourceSize.width: 336
+                        sourceSize.height: 336
                         smooth: true
                         SequentialAnimation on opacity {
                             running: root.visible
@@ -153,8 +174,8 @@ PanelWindow {
                     Image {
                         anchors.fill: parent
                         source: Theme.logo("mark@2x.png")
-                        sourceSize.width: 168
-                        sourceSize.height: 168
+                        sourceSize.width: 336
+                        sourceSize.height: 336
                         smooth: true
                         opacity: 0.85
                     }
