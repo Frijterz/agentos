@@ -1,6 +1,6 @@
 <p align="center">
   <picture>
-    <video src="(prefers-color-scheme: dark)" srcset="docs/agentoslogo.mp4">
+    <source media="(prefers-color-scheme: dark)" srcset="docs/agentos-dark.png">
     <img src="docs/agentos-light.png" alt="agentOS" width="228">
   </picture>
 </p>
