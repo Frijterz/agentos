@@ -22,3 +22,7 @@ systemd-coredump.*Failed to send coredump datagram: Broken pipe
 # The launcher (or the rofi-rbw password picker, also fuzzel) was started while one was
 # already open; fuzzel allows one instance, so the second just exits. Harmless.
 fuzzel.*failed to acquire lock: fuzzel already running
+# Bluetooth headphones (e.g. AirPods going back in the case or switching to the phone)
+# dropped the link mid-playback; PipeWire marks the dead output node as errored and
+# moves on. Reconnecting creates a fresh node.
+pw\.node: \(bluez_output\.[^)]*\) running -> error \(Received error event\)
