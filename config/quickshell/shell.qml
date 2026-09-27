@@ -88,6 +88,12 @@ ShellRoot {
         function close(): void { ShellState.calendarOpen = false }
     }
 
+    // qs ipc call background preview 0   (night; 1 day, -1 back to following the sun)
+    IpcHandler {
+        target: "background"
+        function preview(daylight: real): void { ShellState.daylightPreview = daylight }
+    }
+
     // qs ipc call monitor toggle  (Super+Shift+Escape, or click the bar's telemetry)
     IpcHandler {
         target: "monitor"

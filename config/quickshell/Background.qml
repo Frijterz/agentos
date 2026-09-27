@@ -10,6 +10,9 @@ import Quickshell.Wayland
 // satellite and some telemetry move, at 5 fps. The whole plot drifts a few pixels over
 // ~15 minutes so no line stays lit in one place (OLED). Frozen on battery and in
 // battery mode (Theme.animatedBackground).
+// Day and night follow the real sun (sunrise/sunset from Weather): by day a warm haze
+// and a broad sunlit rim, by night dimmer lines, a thin crescent and faint stars. The
+// change fades over twilight in 20 steps; the Canvas repaints only when a step changes.
 PanelWindow {
     id: root
 
@@ -37,6 +40,27 @@ PanelWindow {
         running: root.running
         onTriggered: root.t += interval / 1000
     }
+
+    // ── Day and night ──
+    SystemClock {
+        id: clock
+        precision: SystemClock.Minutes
+    }
+    function minutes(hm) {
+        const [h, m] = hm.split(":").map(Number);
+        return h * 60 + m;
+    }
+    readonly property string sunrise: Weather.data?.sunrise ?? "07:00"
+    readonly property string sunset: Weather.data?.sunset ?? "19:30"
+    // 0 = night, 1 = day; ramps over the hour around sunrise and sunset.
+    readonly property real daylight: {
+        if (ShellState.daylightPreview >= 0)
+            return Math.min(1, ShellState.daylightPreview);
+        const now = clock.date.getHours() * 60 + clock.date.getMinutes();
+        const ramp = x => Math.max(0, Math.min(1, x / 60 + 0.5));
+        return Math.min(ramp(now - minutes(sunrise)), ramp(minutes(sunset) - now));
+    }
+    readonly property real phase: Math.round(daylight * 20) / 20 // repaint steps
 
     // Orbital geometry, shared by the Canvas and the satellite.
     readonly property real cx: width * 0.66
@@ -98,20 +122,44 @@ PanelWindow {
             height: root.height + 80
 
             // Repaint when the size or theme changes, never per frame.
-            property var deps: [root.width, root.height, Theme.fg, Theme.accent, Theme.bg]
+            property var deps: [root.width, root.height, Theme.fg, Theme.accent, Theme.bg, root.phase]
             onDepsChanged: requestPaint()
 
             onPaint: {
                 const ctx = getContext("2d");
                 const fg = Theme.fg, ac = Theme.accent;
                 const rgba = (c, a) => "rgba(" + Math.round(c.r * 255) + "," + Math.round(c.g * 255) + "," + Math.round(c.b * 255) + "," + a + ")";
+                const day = root.phase;
+                const lines = 0.6 + 0.4 * day; // everything a notch dimmer at night
                 ctx.reset();
                 ctx.translate(40, 40);
+
+                // Night: faint stars, always in the same places (a seeded sequence), and
+                // off the planet's side of the screen.
+                if (day < 1) {
+                    let seed = 7;
+                    const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+                    ctx.fillStyle = rgba(fg, 0.22 * (1 - day));
+                    for (let i = 0; i < 90; i++) {
+                        const x = rand() * root.width, y = rand() * root.height, big = rand() > 0.85;
+                        if (Math.hypot(x - root.cx, y - root.cy) > 110)
+                            ctx.fillRect(x, y, big ? 2 : 1, big ? 2 : 1);
+                    }
+                }
+
+                // Day: a warm haze around the planet.
+                if (day > 0) {
+                    const haze = ctx.createRadialGradient(root.cx, root.cy, 60, root.cx, root.cy, 460);
+                    haze.addColorStop(0, rgba(ac, 0.07 * day));
+                    haze.addColorStop(1, rgba(ac, 0));
+                    ctx.fillStyle = haze;
+                    ctx.fillRect(root.cx - 460, root.cy - 460, 920, 920);
+                }
 
                 // Technical grid: fine every 48 px, major every 240 px.
                 for (let pass = 0; pass < 2; pass++) {
                     const step = pass ? 240 : 48;
-                    ctx.strokeStyle = rgba(fg, pass ? 0.055 : 0.028);
+                    ctx.strokeStyle = rgba(fg, (pass ? 0.055 : 0.028) * lines);
                     ctx.lineWidth = 1;
                     ctx.beginPath();
                     for (let x = -40; x <= root.width + 40; x += step) {
@@ -139,8 +187,8 @@ PanelWindow {
 
                 // Orbits: solid, dotted, solid.
                 for (const o of root.orbits) {
-                    ctx.strokeStyle = rgba(ac, o.alpha);
-                    ctx.fillStyle = rgba(ac, o.alpha * 1.6);
+                    ctx.strokeStyle = rgba(ac, o.alpha * lines);
+                    ctx.fillStyle = rgba(ac, o.alpha * 1.6 * lines);
                     if (o.dotted) {
                         for (let a = 0; a < 360; a += 4) {
                             const p = root.orbitPoint(o, a * Math.PI / 180);
@@ -160,16 +208,18 @@ PanelWindow {
                     }
                 }
 
-                // Planet: dark disc, lit rim on one side, a faint equator.
+                // Planet: dark disc, a sunlit rim (broad by day, a thin crescent at night),
+                // a faint equator.
                 const r = 64;
                 ctx.fillStyle = rgba(Theme.bg, 1);
                 ctx.beginPath();
                 ctx.arc(root.cx, root.cy, r, 0, 2 * Math.PI);
                 ctx.fill();
                 ctx.lineWidth = 1.5;
-                ctx.strokeStyle = rgba(ac, 0.55);
+                ctx.strokeStyle = rgba(ac, 0.35 + 0.2 * day);
+                const lit = Math.PI * (0.25 + 0.55 * day), mid = Math.PI * 1.45;
                 ctx.beginPath();
-                ctx.arc(root.cx, root.cy, r, Math.PI * 1.05, Math.PI * 1.85);
+                ctx.arc(root.cx, root.cy, r, mid - lit / 2, mid + lit / 2);
                 ctx.stroke();
                 ctx.strokeStyle = rgba(ac, 0.15);
                 ctx.beginPath();
@@ -235,6 +285,7 @@ PanelWindow {
                     "MISSION CONTROL · AGENTOS",
                     "MET   T+ " + root.met(root.bootUptime + root.t),
                     "ORBIT " + String(Math.floor(root.t / root.period) + 1).padStart(4, "0") + " · PERIOD 06:00",
+                    root.daylight >= 0.5 ? "DAYSIDE   · SUNSET " + root.sunset : "NIGHTSIDE · SUNRISE " + root.sunrise,
                     root.running ? "TELEMETRY NOMINAL" : "TELEMETRY HOLD"
                 ]
 
