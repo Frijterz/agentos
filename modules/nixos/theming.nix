@@ -42,10 +42,23 @@ in
       };
     };
 
+    # Amber: visible on the near-black desktop and in the mission orange family.
     cursor = {
       package = pkgs.bibata-cursors;
-      name = "Bibata-Modern-Classic";
+      name = "Bibata-Modern-Amber";
       size = 24;
+    };
+
+    # Papirus with orange folders (file dialogs, launcher, notifications). Without its
+    # propagated inputs: they pull breeze-icons' *dev* output and with it Qt's dev
+    # files and database drivers (~150 MiB). Missing icons fall back to hicolor.
+    icons = {
+      enable = true;
+      package = (pkgs.papirus-icon-theme.override { color = "orange"; }).overrideAttrs {
+        propagatedBuildInputs = [ ];
+      };
+      dark = "Papirus-Dark";
+      light = "Papirus-Light";
     };
 
     # Translucent terminal and popups; Hyprland blurs what's behind them.
