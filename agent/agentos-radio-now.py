@@ -12,6 +12,10 @@ $XDG_RUNTIME_DIR/agentos-radio-now.json for the wallpaper (Background.qml).
   agentos-radio-now once   one full read, printed (for testing)
 
 Best effort: a read that doesn't make sense keeps the previous result.
+Gentle, because a burst of downloading and decoding made the radio crackle (Wi-Fi and
+Bluetooth share one chip): 480p video, fetched at playback speed (-re) rather than as
+fast as possible, one thread each for ffmpeg and tesseract, and home/radio.nix runs it
+at idle CPU and I/O priority.
 Packaged by home/radio.nix, which puts yt-dlp, ffmpeg and tesseract on PATH.
 """
 
@@ -25,8 +29,9 @@ import time
 
 URL = "https://clau.de/radio"
 OUT = os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"), "agentos-radio-now.json")
-# The ticker text in a 1280x720 frame (right of the note icon), enlarged and inverted
-# to dark-on-light, which tesseract reads best.
+# The ticker text, located in a 1280x720 frame (right of the note icon; the 480p video
+# is scaled up to that first), enlarged and inverted to dark-on-light, which tesseract
+# reads best.
 FILTER = "scale=1280:720,crop=290:40:950:26,scale=3*iw:3*ih,negate,format=gray"
 
 
@@ -35,13 +40,13 @@ def run(cmd, timeout=90):
 
 
 def stream_url():
-    r = run(["yt-dlp", "-f", "bv[height<=720]", "-g", URL])
+    r = run(["yt-dlp", "-f", "bv[height<=480]", "-g", URL])
     return r.stdout.strip().splitlines()[0] if r.returncode == 0 and r.stdout.strip() else None
 
 
 def frames(url, seconds, folder):
-    run(["ffmpeg", "-loglevel", "error", "-y", "-t", str(seconds), "-i", url,
-         "-vf", "fps=2," + FILTER, os.path.join(folder, "f%03d.png")], timeout=seconds + 60)
+    run(["ffmpeg", "-loglevel", "error", "-y", "-threads", "1", "-re", "-t", str(seconds), "-i", url,
+         "-vf", "fps=2," + FILTER, "-threads", "1", os.path.join(folder, "f%03d.png")], timeout=seconds + 60)
     return sorted(os.path.join(folder, f) for f in os.listdir(folder) if f.endswith(".png"))
 
 

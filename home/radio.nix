@@ -20,7 +20,11 @@ let
       pkgs.ffmpeg-headless
       (pkgs.tesseract.override { enableLanguages = [ "eng" ]; })
     ];
-    text = ''exec python3 ${../agent/agentos-radio-now.py} "$@"'';
+    # One thread for tesseract (it uses every core by default).
+    text = ''
+      export OMP_THREAD_LIMIT=1
+      exec python3 ${../agent/agentos-radio-now.py} "$@"
+    '';
   };
   agentos-radio = pkgs.writeShellApplication {
     name = "agentos-radio";
@@ -39,7 +43,8 @@ let
             https://clau.de/radio
         # Stops with the radio: BindsTo ends it when the radio's unit goes away.
         systemd-run --user --quiet --collect --unit="$unit-now" --description="Claude FM: current song" \
-          --property=BindsTo="$unit.service" --property=After="$unit.service" --nice=10 \
+          --property=BindsTo="$unit.service" --property=After="$unit.service" \
+          --property=CPUSchedulingPolicy=idle --property=IOSchedulingClass=idle \
           ${agentos-radio-now}/bin/agentos-radio-now loop
         notify-send -a Claude "Claude FM" "Music for thinking and building. Super+R stops it." || true
       }
