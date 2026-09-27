@@ -1,10 +1,12 @@
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import Quickshell.Wayland
 
-// OLED-friendly screensaver: true black, slowly rising motes of light, and a dim
-// clock that wanders every minute so no pixel stays lit.
-// Started and stopped by hypridle via `qs ipc call screensaver start|stop`.
+// Mission Control standby screen: true black (OLED), with one console block: an orbit
+// ring, a big amber clock, the date and the weather. The block moves to a new spot
+// every minute so no pixel stays lit. Started and stopped by hypridle via
+// `qs ipc call screensaver start|stop`.
 PanelWindow {
     id: root
 
@@ -23,6 +25,26 @@ PanelWindow {
     WlrLayershell.namespace: "agentos-screensaver"
     color: "black"
 
+    // Weather from agentos-weather (home/weather.nix), refreshed every 30 minutes.
+    property var weather: null
+    FileView {
+        path: (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state") + "/agentos/weather.json"
+        watchChanges: true
+        printErrors: false
+        onFileChanged: reload()
+        onLoaded: {
+            try {
+                root.weather = JSON.parse(text());
+            } catch (e) {}
+        }
+    }
+
+    SystemClock {
+        id: clock
+        precision: SystemClock.Minutes
+        onDateChanged: block.wander()
+    }
+
     Item {
         id: scene
 
@@ -33,8 +55,10 @@ PanelWindow {
             target: root
             function onVisibleChanged() {
                 scene.opacity = 0;
-                if (root.visible)
+                if (root.visible) {
+                    block.wander();
                     fadeIn.restart();
+                }
             }
         }
         NumberAnimation {
@@ -46,53 +70,18 @@ PanelWindow {
             easing.type: Easing.InOutQuad
         }
 
-        Repeater {
-            model: 70
+        Item {
+            id: block
 
-            delegate: Rectangle {
-                id: mote
-
-                required property int index
-                readonly property real depth: Math.random() // 0 = far away, 1 = close
-
-                x: Math.random() * scene.width
-                y: scene.height + 20
-                width: 2 + depth * 4
-                height: width
-                radius: width / 2
-                color: [Theme.accent, Theme.accent2, Theme.accent3, Theme.fg][index % 4]
-                opacity: 0.15 + depth * 0.5
-
-                // Closer motes rise faster; random pauses stagger them.
-                SequentialAnimation on y {
-                    running: root.visible
-                    loops: Animation.Infinite
-                    PauseAnimation { duration: Math.random() * 30000 }
-                    NumberAnimation {
-                        from: scene.height + 20
-                        to: -20
-                        duration: 60000 - mote.depth * 35000
-                    }
-                }
-            }
-        }
-
-        Text {
-            id: clockText
+            readonly property real ring: 190
 
             function wander() {
-                x = Math.random() * (scene.width - width);
-                y = Math.random() * (scene.height - height);
+                x = ring * 0.2 + Math.random() * (scene.width - width - ring * 0.4);
+                y = ring * 0.2 + Math.random() * (scene.height - height - ring * 0.4);
             }
 
-            x: (scene.width - width) / 2
-            y: (scene.height - height) / 2
-            text: Qt.formatDateTime(clock.date, "HH:mm")
-            color: Theme.fg
-            opacity: 0.35
-            font.family: Theme.fontSans
-            font.pixelSize: 96
-            font.weight: Font.Light
+            width: ring * 2
+            height: ring * 2
 
             Behavior on x {
                 NumberAnimation { duration: 4000; easing.type: Easing.InOutSine }
@@ -101,10 +90,83 @@ PanelWindow {
                 NumberAnimation { duration: 4000; easing.type: Easing.InOutSine }
             }
 
-            SystemClock {
-                id: clock
-                precision: SystemClock.Minutes
-                onDateChanged: clockText.wander()
+            // Orbit ring, with one satellite taking a minute per lap.
+            Rectangle {
+                anchors.fill: parent
+                radius: width / 2
+                color: "transparent"
+                border.width: 1
+                border.color: Theme.alpha(Theme.accent, 0.22)
+            }
+            Rectangle {
+                anchors.fill: parent
+                anchors.margins: 14
+                radius: width / 2
+                color: "transparent"
+                border.width: 1
+                border.color: Theme.alpha(Theme.fg, 0.06)
+            }
+            Item {
+                anchors.fill: parent
+                RotationAnimation on rotation {
+                    running: root.visible
+                    from: 0
+                    to: 360
+                    duration: 60000
+                    loops: Animation.Infinite
+                }
+                Rectangle {
+                    x: parent.width / 2 - width / 2
+                    y: -height / 2
+                    width: 6
+                    height: 6
+                    radius: 3
+                    color: Theme.accent
+                    opacity: 0.85
+                }
+            }
+
+            Column {
+                anchors.centerIn: parent
+                spacing: 10
+
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: "MISSION CONTROL · STANDBY"
+                    color: Theme.accent
+                    opacity: 0.4
+                    font.family: Theme.fontMono
+                    font.pixelSize: 11
+                    font.letterSpacing: 3
+                }
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: Qt.formatDateTime(clock.date, "HH:mm")
+                    color: Theme.accent
+                    opacity: 0.8
+                    font.family: Theme.fontMono
+                    font.pixelSize: 104
+                    font.weight: Font.Light
+                }
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: Qt.formatDateTime(clock.date, "dddd d MMMM yyyy").toUpperCase()
+                    color: Theme.fg
+                    opacity: 0.45
+                    font.family: Theme.fontMono
+                    font.pixelSize: 13
+                    font.letterSpacing: 3
+                }
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    visible: root.weather !== null
+                    text: root.weather ? (root.weather.place + "  ·  " + root.weather.temp + "°C  ·  " + root.weather.desc).toUpperCase() : ""
+                    color: Theme.fg
+                    opacity: 0.32
+                    font.family: Theme.fontMono
+                    font.pixelSize: 12
+                    font.letterSpacing: 2
+                }
             }
         }
     }
