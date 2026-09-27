@@ -114,9 +114,9 @@ PanelWindow {
                 readonly property var sink: Pipewire.defaultAudioSink
 
                 anchors.verticalCenter: parent.verticalCenter
-                width: statusRow.implicitWidth + 18
-                height: 26
-                radius: 13
+                width: statusRow.implicitWidth + 20
+                height: 30 // same as the Claude button
+                radius: 15
                 color: ShellState.systemOpen ? Theme.alpha(Theme.accent, 0.25) : statusHover.hovered ? Theme.alpha(Theme.fg, 0.1) : "transparent"
 
                 PwObjectTracker {
@@ -133,21 +133,21 @@ PanelWindow {
                         text: !Networking.wifiEnabled ? "󰤭" : !w ? "󰤯" : w.signalStrength > 0.75 ? "󰤨" : w.signalStrength > 0.5 ? "󰤥" : w.signalStrength > 0.25 ? "󰤢" : "󰤟"
                         color: Theme.fg
                         font.family: Theme.fontMono
-                        font.pixelSize: 14
+                        font.pixelSize: 17 // same as the Claude mark
                     }
                     // Notifications: dot = unread, crossed out = do not disturb (mode).
                     Text {
                         text: Notifs.dnd ? "󰂛" : Notifs.unread > 0 ? "󰂞" : "󰂚"
                         color: Notifs.unread > 0 && !Notifs.dnd ? Theme.accent : Theme.fg
                         font.family: Theme.fontMono
-                        font.pixelSize: 14
+                        font.pixelSize: 17
                     }
                     Text {
                         readonly property var a: parent.parent.sink?.audio
                         text: !a || a.muted ? "󰖁" : a.volume > 0.5 ? "󰕾" : a.volume > 0 ? "󰖀" : "󰕿"
                         color: a?.muted ? Theme.warn : Theme.fg
                         font.family: Theme.fontMono
-                        font.pixelSize: 14
+                        font.pixelSize: 17
                     }
                 }
 
