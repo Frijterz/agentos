@@ -12,6 +12,9 @@ Singleton {
     property bool cheatsheetOpen: false
     property bool overviewOpen: false
     property bool systemOpen: false
+    property bool launcherOpen: false
+    // A question for the Claude panel (from the launcher's "Ask Claude"); it sends it.
+    property string claudeQuestion: ""
 
     // Desktop mode, written by agentos-mode (bar chip, Super+M, Claude).
     property string mode: "normal"

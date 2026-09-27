@@ -525,6 +525,18 @@ PanelWindow {
                 root.refreshLimits();
             }
         }
+        // A question from the launcher ("Ask Claude"): send it, or leave it in the input
+        // field if Claude is still busy with the last one.
+        function onClaudeQuestionChanged() {
+            const q = ShellState.claudeQuestion;
+            if (!q)
+                return;
+            ShellState.claudeQuestion = "";
+            if (root.busy)
+                input.text = q;
+            else
+                root.send(q);
+        }
         // An Apply / Undo password prompt: make sure it's on screen.
         function onAuthIsApplyChanged() {
             if (ShellState.authIsApply)

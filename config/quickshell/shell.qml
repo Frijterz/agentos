@@ -33,6 +33,14 @@ ShellRoot {
 
     SystemMenu {}
 
+    Launcher {}
+
+    // qs ipc call launcher toggle  (Super+Space)
+    IpcHandler {
+        target: "launcher"
+        function toggle(): void { ShellState.launcherOpen = !ShellState.launcherOpen }
+    }
+
     // qs ipc call system toggle  (Super+Escape, or the status button in the bar)
     IpcHandler {
         target: "system"
