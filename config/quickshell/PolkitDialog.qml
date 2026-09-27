@@ -39,7 +39,7 @@ PanelWindow {
         anchors.centerIn: parent
         width: 420
         height: col.implicitHeight + 48
-        radius: 22
+        radius: Theme.radius
         color: Theme.alpha(Theme.bg, 0.8)
         border.width: 1
         border.color: Theme.alpha(Theme.accent, 0.5)

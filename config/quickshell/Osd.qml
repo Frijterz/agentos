@@ -90,7 +90,7 @@ PanelWindow {
         id: pill
 
         anchors.fill: parent
-        radius: height / 2
+        radius: Theme.radius
         color: Theme.alpha(Theme.bg, 0.62)
         border.width: 1
         border.color: Theme.alpha(Theme.fg, 0.08)

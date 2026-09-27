@@ -150,7 +150,7 @@ PanelWindow {
 
                 width: root.tileW
                 height: root.tileH
-                radius: 12
+                radius: Theme.radius
                 clip: true
                 color: Theme.alpha(Theme.bg, 0.6)
                 border.width: wsId === root.selected ? 2 : 1

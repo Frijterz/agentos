@@ -612,7 +612,7 @@ PanelWindow {
                 return;
             event.accepted = true;
         }
-        radius: 20
+        radius: Theme.radius
         color: Theme.alpha(Theme.bg, 0.86)
         border.width: 1
         border.color: Theme.alpha(Theme.fg, 0.08)
@@ -802,7 +802,7 @@ PanelWindow {
 
                     width: ListView.view.width
                     height: card ? cardCol.implicitHeight + 24 : line ? txt.implicitHeight + 4 : bubble.implicitHeight + 20
-                    radius: 14
+                    radius: Theme.radiusSmall
                     color: line ? "transparent" : card ? Theme.alpha(Theme.accent2, 0.1) : who === "you" ? Theme.alpha(Theme.accent, 0.14) : Theme.alpha(Theme.fg, 0.05)
                     border.width: card && (state === "waiting" || state === "applying") ? 1 : 0
                     border.color: Theme.alpha(Theme.accent2, 0.6)
@@ -868,7 +868,7 @@ PanelWindow {
 
                                     width: btnText.implicitWidth + 28
                                     height: 30
-                                    radius: 9
+                                    radius: Theme.radiusSmall
                                     color: allow ? (btnArea.containsMouse ? Theme.accent : Theme.alpha(Theme.accent, 0.8)) : (btnArea.containsMouse ? Theme.alpha(Theme.fg, 0.16) : Theme.alpha(Theme.fg, 0.08))
 
                                     // Keyboard: Tab reaches it (outline shows focus), Enter or
@@ -980,7 +980,7 @@ PanelWindow {
             Rectangle {
                 Layout.preferredWidth: 40
                 Layout.preferredHeight: 40
-                radius: 12
+                radius: Theme.radiusSmall
                 color: camArea.containsMouse ? Theme.alpha(Theme.fg, 0.12) : Theme.alpha(Theme.fg, 0.06)
                 opacity: root.busy || shotProc.running ? 0.4 : 1
 
@@ -1018,7 +1018,7 @@ PanelWindow {
 
                 Layout.preferredWidth: 40
                 Layout.preferredHeight: 40
-                radius: 12
+                radius: Theme.radiusSmall
                 color: recording ? Theme.alpha(Theme.warn, 0.3) : micArea.containsMouse ? Theme.alpha(Theme.fg, 0.12) : Theme.alpha(Theme.fg, 0.06)
                 opacity: root.busy || root.transcribing ? 0.4 : 1
 
@@ -1072,7 +1072,7 @@ PanelWindow {
                 bottomPadding: 10
 
                 background: Rectangle {
-                    radius: 12
+                    radius: Theme.radiusSmall
                     color: Theme.alpha(Theme.fg, 0.06)
                     border.width: 1
                     border.color: input.activeFocus ? Theme.accent : "transparent"

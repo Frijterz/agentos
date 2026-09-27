@@ -42,7 +42,7 @@ Column {
         bottomPadding: 10
 
         background: Rectangle {
-            radius: 12
+            radius: Theme.radiusSmall
             color: Theme.alpha(Theme.fg, 0.06)
             border.width: 1
             border.color: field.activeFocus ? Theme.accent : Theme.alpha(Theme.accent, 0.35)
@@ -74,7 +74,7 @@ Column {
 
                 width: btn.implicitWidth + 28
                 height: 30
-                radius: 9
+                radius: Theme.radiusSmall
                 color: modelData.primary ? (area.containsMouse ? Theme.accent : Theme.alpha(Theme.accent, 0.8)) : (area.containsMouse ? Theme.alpha(Theme.fg, 0.16) : Theme.alpha(Theme.fg, 0.08))
 
                 Text {

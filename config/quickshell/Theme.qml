@@ -42,6 +42,11 @@ Singleton {
         return logoDir ? "file://" + logoDir + "/" + name : "";
     }
 
+    // Corners: cards match the windows (decoration:rounding in hyprland.conf); controls
+    // inside a card are smaller so the curves nest.
+    readonly property int radius: 8
+    readonly property int radiusSmall: 5
+
     // Motion: tune the feel of every animation in one place.
     readonly property int fast: 160
     readonly property int medium: 280

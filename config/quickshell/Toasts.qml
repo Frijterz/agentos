@@ -46,7 +46,7 @@ PanelWindow {
 
                 width: stack.width
                 height: content.implicitHeight + 24
-                radius: 16
+                radius: Theme.radius
                 color: Theme.alpha(Theme.bg, 0.9)
                 border.width: 1
                 border.color: critical ? Theme.warn : Theme.alpha(Theme.accent, 0.3)
@@ -136,7 +136,7 @@ PanelWindow {
                                     required property var modelData
                                     width: actionText.implicitWidth + 20
                                     height: 26
-                                    radius: 8
+                                    radius: Theme.radiusSmall
                                     color: actionArea.containsMouse ? Theme.alpha(Theme.accent, 0.3) : Theme.alpha(Theme.fg, 0.08)
                                     Text {
                                         id: actionText

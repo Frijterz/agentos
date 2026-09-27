@@ -164,7 +164,7 @@ PanelWindow {
         signal expandToggled
 
         height: 58
-        radius: 14
+        radius: Theme.radiusSmall
         color: lit ? Theme.alpha(Theme.accent, 0.18) : Theme.alpha(Theme.fg, 0.06)
         border.width: 1
         border.color: lit ? Theme.alpha(Theme.accent, 0.45) : "transparent"
@@ -322,7 +322,7 @@ PanelWindow {
 
         width: parent.width
         height: 34
-        radius: 9
+        radius: Theme.radiusSmall
         color: area.containsMouse ? Theme.alpha(Theme.fg, 0.08) : "transparent"
 
         Row {
@@ -387,7 +387,7 @@ PanelWindow {
         anchors.rightMargin: 12
         width: 380
         height: content.implicitHeight + 36
-        radius: 20
+        radius: Theme.radius
         color: Theme.alpha(Theme.bg, 0.88)
         border.width: 1
         border.color: Theme.alpha(Theme.fg, 0.08)
@@ -493,7 +493,7 @@ PanelWindow {
                     font.pixelSize: 13
                     leftPadding: 12
                     background: Rectangle {
-                        radius: 10
+                        radius: Theme.radiusSmall
                         color: Theme.alpha(Theme.fg, 0.06)
                         border.width: 1
                         border.color: Theme.accent
@@ -574,7 +574,7 @@ PanelWindow {
 
                         width: (parent.width - 3 * 6) / 4
                         height: 34
-                        radius: 10
+                        radius: Theme.radiusSmall
                         color: current ? Theme.alpha(Theme.accent, 0.2) : modeArea.containsMouse ? Theme.alpha(Theme.fg, 0.1) : Theme.alpha(Theme.fg, 0.05)
                         border.width: current ? 1 : 0
                         border.color: Theme.alpha(Theme.accent, 0.5)
@@ -710,7 +710,7 @@ PanelWindow {
 
                         width: parent.width
                         height: 46
-                        radius: 10
+                        radius: Theme.radiusSmall
                         color: entryArea.containsMouse ? Theme.alpha(Theme.fg, 0.07) : "transparent"
 
                         MouseArea {
@@ -810,7 +810,7 @@ PanelWindow {
 
                         width: (parent.width - 4 * 6) / 5
                         height: 50
-                        radius: 12
+                        radius: Theme.radiusSmall
                         // Icons only; a confirming button turns red until its second click.
                         color: asking ? Theme.alpha(Theme.warn, 0.25) : powerArea.containsMouse ? Theme.alpha(Theme.fg, 0.1) : Theme.alpha(Theme.fg, 0.05)
                         border.width: asking ? 1 : 0

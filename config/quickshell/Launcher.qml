@@ -153,7 +153,7 @@ PanelWindow {
         y: parent.height * 0.2
         width: 620
         height: column.implicitHeight + 28
-        radius: 20
+        radius: Theme.radius
         color: Theme.alpha(Theme.bg, 0.86)
         border.width: 1
         border.color: Theme.alpha(Theme.accent, 0.3)
@@ -194,7 +194,7 @@ PanelWindow {
                 topPadding: 12
                 bottomPadding: 12
                 background: Rectangle {
-                    radius: 12
+                    radius: Theme.radiusSmall
                     color: Theme.alpha(Theme.fg, 0.05)
                     Text {
                         anchors.left: parent.left
@@ -227,7 +227,7 @@ PanelWindow {
 
                     width: column.width
                     height: 50
-                    radius: 12
+                    radius: Theme.radiusSmall
                     color: current ? Theme.alpha(Theme.accent, 0.16) : hover.containsMouse ? Theme.alpha(Theme.fg, 0.05) : "transparent"
                     border.width: current ? 1 : 0
                     border.color: Theme.alpha(Theme.accent, 0.4)

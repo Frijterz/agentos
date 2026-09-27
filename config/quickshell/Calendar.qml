@@ -102,7 +102,7 @@ PanelWindow {
         height: 26
         Rectangle {
             anchors.fill: parent
-            radius: 8
+            radius: Theme.radiusSmall
             color: chevronArea.containsMouse ? Theme.alpha(Theme.fg, 0.1) : "transparent"
         }
         LineIcon {
@@ -133,7 +133,7 @@ PanelWindow {
         anchors.topMargin: 52
         width: weekCol + 7 * cell + 36
         height: content.implicitHeight + 36
-        radius: 20
+        radius: Theme.radius
         color: Theme.alpha(Theme.bg, 0.88)
         border.width: 1
         border.color: Theme.alpha(Theme.fg, 0.08)
