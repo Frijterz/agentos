@@ -97,4 +97,13 @@ in
     (pkgs.chromium.override { commandLineArgs = [ "--load-extension=${chromiumTheme}" ]; })
   ];
   stylix.targets.chromium.enable = false;
+
+  # Chromium policies (/etc/chromium/policies): Bitwarden is the password manager, so
+  # it's installed for you from the Chrome Web Store, and Chromium's own "save
+  # password?" is off to avoid two managers competing.
+  programs.chromium = {
+    enable = true;
+    extensions = [ "nngceckbapebfimnlniiiahkandclblb" ]; # Bitwarden
+    extraOpts.PasswordManagerEnabled = false;
+  };
 }
