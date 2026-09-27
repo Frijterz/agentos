@@ -27,6 +27,12 @@ Singleton {
     readonly property string claudeIcon: scheme.claudeIcon ?? ""
     readonly property color claude: "#D97757" // Claude's brand terracotta
 
+    // agentOS logo images (modules/nixos/themes/agentos-logo.nix); "" until the rebuild.
+    readonly property string logoDir: scheme.logoDir ?? ""
+    function logo(name) {
+        return logoDir ? "file://" + logoDir + "/" + name : "";
+    }
+
     // Motion: tune the feel of every animation in one place.
     readonly property int fast: 160
     readonly property int medium: 280

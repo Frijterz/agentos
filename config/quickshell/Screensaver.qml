@@ -130,8 +130,38 @@ PanelWindow {
                 anchors.centerIn: parent
                 spacing: 10
 
+                // The agentOS mark, breathing a slow glow (calmer than the boot splash).
+                Item {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: 84
+                    height: 84
+                    visible: Theme.logoDir !== ""
+
+                    Image {
+                        anchors.fill: parent
+                        source: Theme.logo("glow@2x.png")
+                        sourceSize.width: 168
+                        sourceSize.height: 168
+                        smooth: true
+                        SequentialAnimation on opacity {
+                            running: root.visible
+                            loops: Animation.Infinite
+                            NumberAnimation { from: 0.08; to: 0.5; duration: 3000; easing.type: Easing.InOutSine }
+                            NumberAnimation { from: 0.5; to: 0.08; duration: 3000; easing.type: Easing.InOutSine }
+                        }
+                    }
+                    Image {
+                        anchors.fill: parent
+                        source: Theme.logo("mark@2x.png")
+                        sourceSize.width: 168
+                        sourceSize.height: 168
+                        smooth: true
+                        opacity: 0.85
+                    }
+                }
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
+                    visible: Theme.logoDir === ""
                     text: "MISSION CONTROL · STANDBY"
                     color: Theme.accent
                     opacity: 0.4

@@ -251,15 +251,44 @@ PanelWindow {
             }
         }
 
-        Text {
-            x: 40
-            y: root.height - 48
-            text: "NIXOS · HYPRLAND · QUICKSHELL · ZENBOOK 14 UM3406"
-            color: Theme.fg
-            opacity: 0.16
-            font.family: Theme.fontMono
-            font.pixelSize: 10
-            font.letterSpacing: 2
+        // agentOS logo block, bottom left: mark, wordmark, system line. Dim, and it drifts
+        // with the plot like everything else.
+        Row {
+            x: 28
+            y: root.height - 100
+            spacing: 10
+            visible: Theme.logoDir !== ""
+
+            Image {
+                anchors.verticalCenter: parent.verticalCenter
+                source: Theme.logo("mark@2x.png")
+                width: 72
+                height: 72
+                sourceSize.width: 144
+                sourceSize.height: 144
+                smooth: true
+                opacity: 0.55
+            }
+            Column {
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 4
+
+                Image {
+                    source: Theme.logo("word@2x.png")
+                    height: 26
+                    fillMode: Image.PreserveAspectFit
+                    smooth: true
+                    opacity: 0.5
+                }
+                Text {
+                    text: "NIXOS · HYPRLAND · QUICKSHELL · ZENBOOK 14 UM3406"
+                    color: Theme.fg
+                    opacity: 0.2
+                    font.family: Theme.fontMono
+                    font.pixelSize: 10
+                    font.letterSpacing: 2
+                }
+            }
         }
     }
 

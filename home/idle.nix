@@ -6,6 +6,10 @@ let
   c = config.lib.stylix.colors;
   mono = config.stylix.fonts.monospace.name;
   weatherFile = "${config.xdg.stateHome}/agentos/weather.json";
+  logo = import ../modules/nixos/themes/agentos-logo.nix {
+    inherit pkgs;
+    colors = config.lib.stylix.colors;
+  };
   hyprctl = "${pkgs.hyprland}/bin/hyprctl";
   loginctl = "${pkgs.systemd}/bin/loginctl";
   systemctl = "${pkgs.systemd}/bin/systemctl";
@@ -58,7 +62,30 @@ in
           color = "rgb(${c.base00})";
         }
       ];
+      # The agentOS mark, with its glow baked in (hyprlock can't animate). The wordmark
+      # is a label below: hyprlock's image widget is square, made for profile photos.
+      image = [
+        {
+          monitor = "";
+          path = "${logo}/mark-glow@2x.png";
+          size = 150;
+          rounding = 0;
+          border_size = 0;
+          position = "0, 410";
+          halign = "center";
+          valign = "center";
+        }
+      ];
       label = [
+        {
+          # "##": hyprlang reads a single # as the start of a comment.
+          text = ''<span foreground="##${c.base05}">agent</span><span foreground="##${c.base0D}">OS</span>'';
+          font_family = "${mono} Bold";
+          font_size = 20;
+          position = "0, -330";
+          halign = "center";
+          valign = "center";
+        }
         {
           text = "MISSION CONTROL  ·  AUTHORIZATION REQUIRED";
           color = "rgba(${c.base0D}99)";

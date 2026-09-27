@@ -19,6 +19,12 @@ let
       hash = "sha256-LW/aeesY3czKNbeZ7rPOzg36vCJSDOOxCr0lZo35+pM=";
     };
   } ''sed 's/<path /<path fill="#D97757" /' "$src" > "$out"'';
+
+  # The agentOS logo (same images as the boot splash), for wallpaper and screensaver.
+  logo = import ../modules/nixos/themes/agentos-logo.nix {
+    inherit pkgs;
+    colors = osConfig.lib.stylix.colors;
+  };
 in
 {
   home.packages = [ pkgs.quickshell ];
@@ -50,6 +56,7 @@ in
     fontSans = fonts.sansSerif.name;
     fontMono = fonts.monospace.name;
     claudeIcon = "${claudeIcon}";
+    logoDir = "${logo}";
   };
 
   systemd.user.services.quickshell = {
